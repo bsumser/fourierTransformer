@@ -1,6 +1,6 @@
 # README #
 
-###### author(s): [Brett Sumser](https://github.com/bsumser)
+###### author(s): [Brett Sumser](https://github.com/bsumser), [Justin Spidell](https://bitbucket.org/jspidell)
 
 ### Fourier Transformer ###
 
