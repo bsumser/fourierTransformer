@@ -1,6 +1,6 @@
 # README #
 
-###### author(s): [Brett Sumser](https://github.com/bsumser), [Justin Spidell](https://bitbucket.org/jspidell)
+###### author(s): [Brett Sumser](https://github.com/bsumser), [Justin Spidell](https://github.com/jace1427)
 
 ### Fourier Transformer ###
 
@@ -22,4 +22,4 @@
 ### Who do I talk to? ###
 
 * [Brett Sumser](https://github.com/bsumser)
-* [Justin Spidell](https://bitbucket.org/jspidell)
+* [Justin Spidell](mailto:jspidell@uoregon.edu)
