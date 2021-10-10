@@ -1,21 +1,17 @@
 # README #
 
-This README would normally document whatever steps are necessary to get your application up and running.
+###### author(s): [Brett Sumser](https://github.com/bsumser)
 
-### What is this repository for? ###
+### Fourier Transformer ###
 
-* Quick summary
+* This repository is for a student implementation of the Fourier Transformation algorithm. The project  
 * Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
 
 ### How do I get set up? ###
 
-* Summary of set up
-* Configuration
+* Compile with "make" and run with "./main". Object files can be removed with "make clean".
 * Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
+* Launch options
 
 ### Contribution guidelines ###
 
@@ -25,5 +21,5 @@ This README would normally document whatever steps are necessary to get your app
 
 ### Who do I talk to? ###
 
-* Repo owner or admin
-* Other community or team contact
+* [Brett Sumser](https://github.com/bsumser)
+* [Justin Spidell](https://bitbucket.org/jspidell)
