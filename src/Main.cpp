@@ -13,15 +13,17 @@ int main() {
 int discreteFourierTransform(std::vector<float> input)
 {
     int sum = 0;
+    int inputSize = input.size();
 
     //get imaginary number i for DFT algorithm
-    int I = -1;
-    I = sqrt(I);
+    int eulerPower = -1;
+    eulerPower = sqrt(eulerPower) * 2 * M_PI;
+    eulerPower = (eulerPower / inputSize) * -1;
 
     //sigma notation algorithm start
     for (int i = 0; i < input.size() - 1; i++)
     {
-        input[i] * (exp((-1 * I * 2 * M_PI) / input.size()));
+        input[i] * exp(eulerPower);
     }
     return sum;
 }
