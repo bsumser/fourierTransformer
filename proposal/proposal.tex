@@ -1,22 +1,37 @@
 \documentclass[12pt]{extarticle}
 \usepackage[utf8]{inputenc}
 \usepackage{cite}
+\usepackage{amsmath}
 
-\title{Proposed Title of your Thesis}
-\author{Your Name, Roll No.}
-\date{January 2019}
+\title{A Parallel Application of the Fourier Transformation}
+\author{Justin Spidell -- Brett Sumser}
+\date{October 2021}
 
 \begin{document}
-
+ 
 \maketitle
+\newpage
+\begin{abstract}
 
-Write about the proposed work touching the research gap you are addressing, novelty etc. When you are using some references, make sure you list them in the reference below and cite them in this section \cite{Linhart2014} \cite{Linhart2008}.
+A Fourier transform is a mathematical transform decomposing functions based on space and time into functions based on spatial or temporal frequency. The Fourier transform is denoted by adding a circumflex to the symbol of a function:
 
-And in the last paragraph write about the proposed deliverable aimed from this thesis  \cite{fractalwiki}.
+\begin{align*}
+f \rightarrow \hat{f}
+\end{align*}
 
-Proposed Guides: Dr./Mr./Ms Name of faculty, Professor/Associate/Assistant Professor, Department, Campus.  \nocite{higham1998handbook}
+The Fourier transform is defined as:
 
+\begin{align}
+\hat{f} (\xi)= \int^{\infty}_{-\infty}f(x) e^{-2 \pi i x \xi}dx
+\end{align}
 
+Whereas the inverse Fourier transform is denoted as:
+
+\begin{align}
+{f} (x)= \int^{\infty}_{-\infty}\hat{f}(\xi) e^{2 \pi i x \xi}d\xi
+\end{align}
+
+\end{abstract}
 \bibliographystyle{plain}
 \bibliography{M335}
 
