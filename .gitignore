@@ -7,6 +7,12 @@
 node_modules/
 dist/
 
+# Latex compilation files
+*.aux
+*.log
+*.bbl
+*.blg
+
 # Compiled Java class files
 *.class
 
