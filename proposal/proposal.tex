@@ -3,6 +3,10 @@
 \usepackage{cite}
 \usepackage{amsmath}
 
+\usepackage{etoolbox}
+\apptocmd{\sloppy}{\hbadness 10000\relax}{}{} 
+%^This is here to fix long URLs in refs.bib throwing underfull hbox errors
+
 \title{A Parallel Application of the Fourier Transformation}
 \author{Justin Spidell -- Brett Sumser}
 \date{October 2021}
@@ -38,18 +42,25 @@ Whereas the inverse Fourier transform is denoted as:
 \section*{Introduction}
 
     The Fourier Transform is an important mathematical concept. It has applications
-    in digital signal processing, convolution in neural networks, and even image recognition.
+    in digital signal processing, convolution in neural networks, image recognition and even speech processing.
+    The main idea behind the Fourier Transform is that it is a 
+    "mathematical operation that changes the domain (x-axis) of a signal from time to frequency," \cite{Maklin:2019}. 
 
 \maketitle
 \newpage
 \section*{Parallelization} 
     
     There are a few different directions to explore when developing a more
-    parallized implementation of the Fourier Transform.
+    parallized implementation of the Fourier Transform. Two methods of Parallelization
+    that stand out in particular are SIMD, and multithreading.
     
     This is a test citation. \cite{knuth:1984}
     This is a test citation. \cite{Liu:2021}
 
+\subsection*{SIMD} 
+
+
+\subsection*{Multithreading} 
 
 \bibliographystyle{plain}
 \bibliography{refs} % Entries are in the &quot;refs.bib&quot; file</code></pre>
