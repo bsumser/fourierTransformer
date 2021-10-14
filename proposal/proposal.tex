@@ -106,6 +106,7 @@
     The amount of threads is equal to $N/B$, with $B$ being the block list for a list of contiguous data pieces. 
     Threads are then distributed between processors round-robin style, which enables load balancing across available processors.
     In the end, each processor will perform an FFT computation on $B$ data pieces.
+    This version of the algorithm seems like it may be applicable for use on the University of Oregon supercomputer.
 
 \section*{Application}
 	We plan to use our FFT implementation to compress images and audios. 
@@ -120,7 +121,9 @@
 
 \section*{Conclusion}
 	By creating a implementation of the Fast Fourier Transform, we hope to gain insight into modern image and audio compression software, as well commonly found analog to digital conversion software.
-	The University of Oregon's supercomputer will be applied for testing and use of our implementation, hopefully with success.
+    We will attempt to implement a more sophisticated parallelized version of the FFT, using concepts applied from class such as SIMD and multithreading/processing.
+    We are excited to be able to have access the hardware capable of applying these concepts for parallelized computing.
+	The University of Oregon's supercomputer will be applied for testing and use of our implementation, hopefully with success. 
 	This is a lofty goal, and will take a good amount of work, but the end result will be something to be proud of.
 
 \bibliographystyle{plain}
