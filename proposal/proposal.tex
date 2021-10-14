@@ -53,7 +53,11 @@ Whereas the inverse Fourier transform is denoted as:
 
     Unforunately, the Discrete Fourier Transform is on the slower side for algorithms, being performed in $O(n^2)$.
     But by using a divide and conquer strategy, an algortihm called the Fast Fourier Transform (hereby referred to as the FFT),
-    is formulated. The FFT is quite a bit fast than the DFT, being performed in $O(n\log{}n)$ time.
+    is formulated. The FFT is quite a bit fast than the DFT, being performed in $O(n\log{}n)$ time. The FFT can be easily
+    implemented using a recursive programming method, but there are benefits to using an iterative implementation. 
+    Parallel implementations can use less index computations, as well was being able to be parallized far more easily
+    than a recursive version.
+
 
 
 \maketitle
