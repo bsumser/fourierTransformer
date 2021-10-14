@@ -56,9 +56,7 @@ Whereas the inverse Fourier transform is denoted as:
     is formulated. The FFT is quite a bit fast than the DFT, being performed in $O(n\log{}n)$ time. The FFT can be easily
     implemented using a recursive programming method, but there are benefits to using an iterative implementation. 
     Parallel implementations can use less index computations, as well was being able to be parallized far more easily
-    than a recursive version.
-
-
+    than a recursive version. This leads us nicely into the main impetus for this project, and the class as a whole.
 
 \maketitle
 \newpage
@@ -74,7 +72,11 @@ Whereas the inverse Fourier transform is denoted as:
     and to understand the methods that can be used to achieve this.
     Two methods of Parallelization that stand out in particular are SIMD, and multithreading.
 
-\subsection*{SIMD} 
+\subsection*{SIMD}
+    
+    Single Instruction Multiple Data prcoessors are also known as vector processors, and allow a single instruction
+    to process multiple pieces of data in the same clock cycle.
+
 
 \subsection*{Multithreading} 
 
