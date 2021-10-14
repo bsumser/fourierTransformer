@@ -44,15 +44,23 @@ Whereas the inverse Fourier transform is denoted as:
     The Fourier Transform is an important mathematical concept. It has applications
     in digital signal processing, convolution in neural networks, image recognition and even speech processing.
     The main idea behind the Fourier Transform is that it is a 
-    "mathematical operation that changes the domain (x-axis) of a signal from time to frequency," \cite{Maklin:2019}. 
+    "mathematical operation that changes the domain (x-axis) of a signal from time to frequency," \cite{Maklin:2019}.
+    The particular use case for the Fourier Transform that initially started this project was that of 
+    digital signal processing.
 
 \maketitle
 \newpage
 \section*{Parallelization} 
     
     There are a few different directions to explore when developing a more
-    parallized implementation of the Fourier Transform. Two methods of Parallelization
-    that stand out in particular are SIMD, and multithreading.
+    parallized implementation of the Fourier Transform. 
+    According to Anthony Blake in his thesis paper titled "Computing the Fast Fourier Transform on SIMD Microprocessors",
+    use of the FFT algorithm is extremely widespread in multiple disciplines. He goes on to state that 
+    "use of the FFT is even more pervasive, and it is counted among the 10 algorithms that have had the greatest influence 
+    on the development and practice of science and engineering in the 20th century," \cite{Blake:2012}.
+    The widespread use of the FFT algorithm provides great evidence for the need to optimize for different applications,
+    and to understand the methods that can be used to achieve this.
+    Two methods of Parallelization that stand out in particular are SIMD, and multithreading.
     
     This is a test citation. \cite{knuth:1984}
     This is a test citation. \cite{Liu:2021}
