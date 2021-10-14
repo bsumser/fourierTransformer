@@ -17,22 +17,13 @@
 \newpage
 \begin{abstract}
 
-A Fourier transform is a mathematical transform decomposing functions based on space and time into functions based on spatial or temporal frequency. The Fourier transform is denoted by adding a circumflex to the symbol of a function:
-
-\begin{align*}
-f \rightarrow \hat{f}
-\end{align*}
-
-The Fourier transform is defined as:
-
-\begin{align}
-\hat{f} (\xi)= \int^{\infty}_{-\infty}f(x) e^{-2 \pi i x \xi}dx
-\end{align}
-Whereas the inverse Fourier transform is denoted as:
-
-\begin{align}
-{f} (x)= \int^{\infty}_{-\infty}\hat{f}(\xi) e^{2 \pi i x \xi}d\xi
-\end{align}
+	This project intends to implement a parallized version of The Fourier Transform, called the Fast Fourier Transform (hereby referred to as the FFT) to convert analog signals into digital signals and compress images. 
+	Specifically, a Discrete Fourier Transform (hereby referred to as the DFT) is used.
+	By taking a waveform and sampling it at a certain constant frequency, we gather discrete signals in the form of a sum of sines and cosines that can be easily stored or analyzed.
+	This is how common storage formats like mp3 or jpg are compressed.
+	\newline
+    \indent We intend to create an implementation of the FFT to compress images and digital audio, as well as convert analog audio to digital. 
+    Our project will be written in C++, and by taking advantage of the University of Oregon's supercomputer, we will test our compression algorithm on its speed, and loss of quality with small and large pictures and audios.
 
 \end{abstract}
 
@@ -41,28 +32,42 @@ Whereas the inverse Fourier transform is denoted as:
 \newpage
 \section*{Introduction}
 
-    The Fourier Transform is an important mathematical concept. It has applications
+	The Fourier Transform is an important mathematical concept. It has applications
     in digital signal processing, convolution in neural networks, image recognition and even speech processing.
     The main idea behind the Fourier Transform is that it is a 
-    "mathematical operation that changes the domain (x-axis) of a signal from time to frequency," \cite{Maklin:2019}.
-    The particular use case for the Fourier Transform that initially started this project was that of 
-    digital signal processing, specifically the conversion of analog signals to digital for guitar effects processing.
-    When first researching the methods used to sample analog signals for conversion into digital, the Discrete Fourier 
-    Transform is impossible to avoid. Using the Fourier Series, it is apparent that any complicated wave form can be taken,
+    "mathematical operation that changes the domain (x-axis) of a signal from time to frequency," \cite{Maklin:2019}. 
+    The Fourier transform is denoted by adding a circumflex to the symbol of a function:
+
+	\begin{align*}
+		f \rightarrow \hat{f}
+	\end{align*}
+
+	The Fourier transform is defined as:
+
+	\begin{align}
+		\hat{f} (\xi)= \int^{\infty}_{-\infty}f(x) e^{-2 \pi i x \xi}dx
+	\end{align}
+
+    The particular use case for the Fourier Transform that initially started this project was that of  digital signal processing, specifically the conversion of analog signals to digital for guitar effects processing.
+    Using the Fourier Series, it is apparent that any complicated wave form can be taken,
     and represented as an infinite series of sine and cosine functions \cite{Liu:2021}.
+    Unfortunately, the DFT is on the slower side for algorithms, being performed in $O(n^2)$.
+    It is defined as:
+    
+	\begin{align*}
+		Let\ x_{0},\ ..., x_{N-1}\ be\ complex\ numbers,
+	\end{align*}
+	\begin{align}
+		X_{k} = \sum_{n=0}^{N-1}x_{n}e^{-i 2 \pi k n / N}\ \ \ k = 0,\ ...,\ N-1
+    \end{align}
 
-    Unforunately, the Discrete Fourier Transform is on the slower side for algorithms, being performed in $O(n^2)$.
-    But by using a divide and conquer strategy, an algortihm called the Fast Fourier Transform (hereby referred to as the FFT),
-    is formulated. The FFT is quite a bit fast than the DFT, being performed in $O(n\log{}n)$ time. The FFT can be easily
-    implemented using a recursive programming method, but there are benefits to using an iterative implementation. 
-    Parallel implementations can use less index computations, as well was being able to be parallized far more easily
-    than a recursive version.
-
-
+    But by using a divide and conquer strategy over the DFT, an algorithm called the Fast Fourier Transform, is formulated.
+	The FFT is much faster than the DFT, being performed in $O(n\log{}n)$ time. The FFT can be easily implemented using a recursive or iterative programming method, but there are benefits to using an iterative approach. 
+    For example, iterative implementations can use less index computations, as well was being able to be parallized far more easily than a recursive version.
 
 \maketitle
 \newpage
-\section*{Parallelization} 
+\section*{Parallization} 
     
     There are a few different directions to explore when developing a more
     parallized implementation of the Fourier Transform. 
