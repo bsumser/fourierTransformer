@@ -64,6 +64,7 @@
     But by using a divide and conquer strategy over the DFT, an algorithm called the Fast Fourier Transform, is formulated.
 	The FFT is much faster than the DFT, being performed in $O(n\log{}n)$ time. The FFT can be easily implemented using a recursive or iterative programming method, but there are benefits to using an iterative approach. 
     For example, iterative implementations can use less index computations, as well was being able to be parallized far more easily than a recursive version.
+    This leads us nicely into the main impetus for this project, and the class as a whole.
 
 \maketitle
 \newpage
@@ -79,9 +80,25 @@
     and to understand the methods that can be used to achieve this.
     Two methods of Parallelization that stand out in particular are SIMD, and multithreading.
 
-\subsection*{SIMD} 
+\subsection*{SIMD}
+    
+    Single Instruction Multiple Data prcoessors are also known as vector processors, and allow a single instruction
+    to process multiple pieces of data in the same clock cycle. The way that SIMD works is by packing several pieces of data
+    into one data word. This allows the instruction loaded to act on each piece of data from a single instruction.
+    This has applications in situations where large amounts of data are being manipulated. With respect to the Fourier Transform,
+    this can be applied to image manipulation, audio processing, or other functions.
 
-\subsection*{Multithreading} 
+    According to this post\cite{Konstantin:2020} on StackOverflow, C/C++ contains SIMD functions called vector intrinsics.
+    These are implemented in the compiler, allowing them to load orders of magnitude faster than common library functions. 
+    The found that they could use these intrinsics to produce code up to four times faster, and even more in certain cases!
+    For this project, getting a handle on these intrinsics would allow for an increased knowledge in C/C++, while also providing
+    experience in possible future scenarios with performance critical code.
+
+\subsection*{Multithreading}
+    After some preliminary research into a multithreading implementation of FFT\cite{Thulasiraman:2021}, it seems there are
+    possible multithreaded implementations of the FFT. Based on the previously cited source, Thulasiraman et al. picked two 
+    different algorithmic approaches to investigate. The first is what they referred to as a sender-initiated algorithm based
+    on the Cooley-Tukey FFT algorithm.
 
 \bibliographystyle{plain}
 \bibliography{refs} % Entries are in the &quot;refs.bib&quot; file</code></pre>
