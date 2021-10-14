@@ -12,6 +12,7 @@ dist/
 *.log
 *.bbl
 *.blg
+*.pdf
 
 # Compiled Java class files
 *.class
