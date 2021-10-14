@@ -99,7 +99,13 @@
     After some preliminary research into a multithreading implementation of FFT\cite{Thulasiraman:2021}, it seems there are
     possible multithreaded implementations of the FFT. Based on the previously cited source, Thulasiraman et al. picked two 
     different algorithmic approaches to investigate. The first is what they referred to as a sender-initiated algorithm based
-    on the Cooley-Tukey FFT algorithm.
+    on the Cooley-Tukey FFT algorithm. The Cooley-Tukey algorithm is the most common of the FFT variations, recursively breaking
+    the DFT into $N_1$ DFTs of size $N_2$, multiplying by complex roots of unity, and performing $N_2$ DFTs of size $N_1$.
+    
+    The second is stated as a sender-initited algorithm, utilizing a thread pool fixed at compile time. 
+    The amount of threads is equal to $N/B$, with $B$ being the block list for a list of contiguous data pieces. 
+    Threads are then distributed between processors round-robin style, which enables load balancing across available processors.
+    In the end, each processor will perform an FFT computation on $B$ data pieces.
 
 \section*{Application}
 	We plan to use our FFT implementation to compress images and audios. 
