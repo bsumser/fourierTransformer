@@ -46,7 +46,11 @@ Whereas the inverse Fourier transform is denoted as:
     The main idea behind the Fourier Transform is that it is a 
     "mathematical operation that changes the domain (x-axis) of a signal from time to frequency," \cite{Maklin:2019}.
     The particular use case for the Fourier Transform that initially started this project was that of 
-    digital signal processing.
+    digital signal processing, specifically the conversion of analog signals to digital for guitar effects processing.
+    When first researching the methods used to sample analog signals for conversion into digital, the Discrete Fourier 
+    Transform is impossible to avoid. Using the Fourier Series, it is apparent that any complicated wave form can be taken,
+    and represented as a sum of sine and cosine functions.
+
 
 \maketitle
 \newpage
@@ -61,12 +65,8 @@ Whereas the inverse Fourier transform is denoted as:
     The widespread use of the FFT algorithm provides great evidence for the need to optimize for different applications,
     and to understand the methods that can be used to achieve this.
     Two methods of Parallelization that stand out in particular are SIMD, and multithreading.
-    
-    This is a test citation. \cite{knuth:1984}
-    This is a test citation. \cite{Liu:2021}
 
 \subsection*{SIMD} 
-
 
 \subsection*{Multithreading} 
 
