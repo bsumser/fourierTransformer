@@ -49,7 +49,11 @@ Whereas the inverse Fourier transform is denoted as:
     digital signal processing, specifically the conversion of analog signals to digital for guitar effects processing.
     When first researching the methods used to sample analog signals for conversion into digital, the Discrete Fourier 
     Transform is impossible to avoid. Using the Fourier Series, it is apparent that any complicated wave form can be taken,
-    and represented as a sum of sine and cosine functions.
+    and represented as an infinite series of sine and cosine functions \cite{Liu:2021}.
+
+    Unforunately, the Discrete Fourier Transform is on the slower side for algorithms, being performed in $O(n^2)$.
+    But by using a divide and conquer strategy, an algortihm called the Fast Fourier Transform (hereby referred to as the FFT),
+    is formulated. The FFT is quite a bit fast than the DFT, being performed in $O(n\log{}n)$ time.
 
 
 \maketitle
