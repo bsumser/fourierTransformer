@@ -35,17 +35,24 @@ int discreteFourierTransform(std::vector<float> input)
 
 std::vector<float> floatGenerator(int vectorSize)
 {
+    //start clock to measure execution time
     auto start = high_resolution_clock::now();
+
+    //initialize stuff fo random float generator
     std::default_random_engine floatGenerator;
     std::mt19937 mt(floatGenerator());
     std::uniform_real_distribution<float> uniform_distance(0, 10.001);
+    
+    //float vector to return
     std::vector<float> floatVector;
 
+    //#pragma omp parallel for 
     for (int i = 0; i < vectorSize - 1; i++) {
         floatVector.push_back(uniform_distance(mt));
-        std::cout << "rand is " << uniform_distance(mt) << std::endl;
+        //std::cout << "rand is " << uniform_distance(mt) << std::endl;
     }
+    auto stop = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(stop - start);
-    std::cout << duration.count() << std::endl;
+    std::cout << "took " << duration.count() << " microseconds" << std::endl;
     return floatVector;
 }
