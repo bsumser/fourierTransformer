@@ -3,7 +3,7 @@ obj = $(src:.cpp=.o)
 
 CC = g++
 
-CXXFLAGS = -g -std=c++11
+CXXFLAGS = -g -std=c++11 -fopenmp
 
 PROPOSAL = proposal
 
