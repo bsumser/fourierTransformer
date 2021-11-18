@@ -10,12 +10,14 @@ using namespace std::chrono;
 using namespace std;
 
 vector<float> floatGenerator(int vectorSize);
+void processArgs(int argc, char* argv[]);
 vector<std::complex<double>> discreteFourierTransform(vector<complex<double>> input);
 vector<std::complex<double>> discreteFourierTransformFaster(vector<std::complex<double>> input);
 vector<std::complex<double>> discreteFourierTransformTurkey(vector<std::complex<double>> input);
 vector<std::complex<double>> signalGenerator(int sampleSize);
 
 int main(int argc, char* argv[]) {
+    processArgs(argc, argv);
     Timelord newTimeLord();
     //floatGenerator(100000);
 
@@ -27,9 +29,17 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
+void processArgs(int argc, char* argv[])
+{
+    cout << "processing args" << endl;
+    for (int i = 0; i < argc; i++) {
+        cout << "arg " << i << " is " << argv[i] << endl;
+    }
+}
+
 vector<std::complex<double>> discreteFourierTransform(vector<std::complex<double>> input)
 {
-    //initiliaze sizes of samples
+    //initialize sizes of samples
     int N = input.size();
     int K = input.size();
 
