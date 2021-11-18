@@ -4,6 +4,8 @@
 #include <cmath>
 #include <random>
 #include <chrono>
+#include <stdio.h>
+#include <string.h>
 #include "../include/Timelord.h"
 
 using namespace std::chrono;
@@ -34,6 +36,10 @@ void processArgs(int argc, char* argv[])
     cout << "processing args" << endl;
     for (int i = 0; i < argc; i++) {
         cout << "arg " << i << " is " << argv[i] << endl;
+
+        if (strcmp(argv[i], "-verbose") == 0) {
+            cout << "verbose mode activated" << endl;
+        }
     }
 }
 
