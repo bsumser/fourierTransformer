@@ -24,7 +24,7 @@ vector<float> floatGenerator(int vectorSize);
 void processArgs(int argc, char* argv[]);
 void writeToFile(string file, vector<complex<double>> output);
 vector<complex<double>> discreteFourierTransform(vector<complex<double>> input);
-vector<complex<double>> discreteFourierTransformFaster(vector<complex<double>> input);
+vector<complex<double>> parallelDiscreteFourierTransform(vector<complex<double>> input);
 vector<complex<double>> discreteFourierTransformTurkey(vector<complex<double>> input);
 vector<complex<double>> signalGenerator(int sampleSize);
 
@@ -62,13 +62,13 @@ int main(int argc, char* argv[]) {
     writeToFile("dft.txt", output);
 
     // DFTF
-    cout << "Starting Faster DFT ... ";
+    cout << "Starting // DFT ... ";
     start = high_resolution_clock::now();
-    output = discreteFourierTransformFaster(input);
+    output = parallelDiscreteFourierTransform(input);
     stop = high_resolution_clock::now();
     duration = stop - start;
     cout << "done in " << duration.count() << " microseconds" << endl;
-    writeToFile("fdft.txt", output);
+    writeToFile("pdft.txt", output);
 
 
     //DFTT
@@ -140,7 +140,7 @@ vector<complex<double>> discreteFourierTransform(vector<complex<double>> input)
     return output;
 }
 
-vector<complex<double>> discreteFourierTransformFaster(vector<complex<double>> input)
+vector<complex<double>> parallelDiscreteFourierTransform(vector<complex<double>> input)
 {
     //initiliaze sizes of samples
     int N = input.size();
@@ -162,7 +162,7 @@ vector<complex<double>> discreteFourierTransformFaster(vector<complex<double>> i
     for (k = 0; k < K; k++)
     {
         innerSum = complex<double>(0,0);
-        //TODO fix this reduction
+	#pragma omp parallel for reduction(+ : innerSum)
         for (n = 0; n < N; n++) {
             //process real and imaginary parts of sum via definition in "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
             double real = cos(((2 * M_PI) / N) * k * n);
@@ -170,7 +170,8 @@ vector<complex<double>> discreteFourierTransformFaster(vector<complex<double>> i
 
             //store as std::complex double for multiplication
             complex<double> w (real, -imag);
-            innerSum += input[n] * w;
+	    complex<double> tmp = input[n] * w;
+            innerSum += tmp;
         }
         //add value to the output vector
         output.push_back(innerSum);
