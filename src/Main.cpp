@@ -1,3 +1,10 @@
+/* Program driver for a series of Parallel Fourier Tranformations.
+ *
+ * Authors:
+ *	Brett Sumser
+ *	Justin Spidell
+ */
+#include <typeinfo>
 #include <iostream>
 #include <vector>
 #include <complex>
@@ -8,39 +15,96 @@
 #include <string.h>
 #include "../include/Timelord.h"
 
+
 using namespace std::chrono;
 using namespace std;
 
+
 vector<float> floatGenerator(int vectorSize);
-void processArgs(int argc, char* argv[]);
+int processArgs(int argc, char* argv[]);
 vector<std::complex<double>> discreteFourierTransform(vector<complex<double>> input);
 vector<std::complex<double>> discreteFourierTransformFaster(vector<std::complex<double>> input);
 vector<std::complex<double>> discreteFourierTransformTurkey(vector<std::complex<double>> input);
 vector<std::complex<double>> signalGenerator(int sampleSize);
 
-int main(int argc, char* argv[]) {
-    processArgs(argc, argv);
-    Timelord newTimeLord();
-    //floatGenerator(100000);
 
-    vector<std::complex<double>> input = signalGenerator(1000);
-    discreteFourierTransform(input);
+int main(int argc, char* argv[]) {
+    // Get N
+    int n = processArgs(argc, argv);
+    cout << "N = " << n << endl;
+
+    // Init Variables
+    high_resolution_clock::time_point start, stop;
+    chrono::duration<double, micro> duration;
+    vector<complex<double>> input, output;
+    Timelord newTimeLord();
+
+    // Create Signal Generator
+    cout << "Generating signal ... ";
+    start = high_resolution_clock::now();
+    input = signalGenerator(n);
+    stop = high_resolution_clock::now();
+    duration = stop - start;
+    cout << "done in " << duration.count() << " microseconds" << endl;
+
+
+    // DFT
+    cout << "Starting DFT ... ";
+    start = high_resolution_clock::now();
+    input = discreteFourierTransform(input);
+    stop = high_resolution_clock::now();
+    duration = stop - start;
+    cout << "done in " << duration.count() << " microseconds" << endl;
+
+    #ifdef DEBUG
+	cout << "{";
+        for (int i = 0; i < 6; i++)
+	    cout << (if i != 5) ? output[i] << ", " : output[i] << "}" << endl;
+    #endif
+
+
+    // DFTF
+    cout << "Starting DFTF ... ";
+    start = high_resolution_clock::now();
     discreteFourierTransformFaster(input);
+    stop = high_resolution_clock::now();
+    duration = stop - start;
+    cout << "done in " << duration.count() << " microseconds" << endl;
+
+    #ifdef DEBUG
+	cout << "{";
+        for (int i = 0; i < 6; i++)
+	    cout << (if i != 5) ? output[i] << ", " : output[i] << "}" << endl;
+    #endif
+
+
+    //DFTT
+    cout << "Starting DFTT ... ";
+    start = high_resolution_clock::now();
     discreteFourierTransformTurkey(input);
+    stop = high_resolution_clock::now();
+    duration = stop - start;
+    cout << "done in " << duration.count() << " microseconds" << endl;
+
+    #ifdef DEBUG
+	cout << "{";
+        for (int i = 0; i < 6; i++)
+	    cout << (if i != 5) ? output[i] << ", " : output[i] << "}" << endl;
+    #endif
 
     return 0;
 }
 
-void processArgs(int argc, char* argv[])
+int processArgs(int argc, char* argv[])
 {
-    cout << "processing args" << endl;
-    for (int i = 0; i < argc; i++) {
-        cout << "arg " << i << " is " << argv[i] << endl;
-
-        if (strcmp(argv[i], "-verbose") == 0) {
-            cout << "verbose mode activated" << endl;
-        }
+    // TODO: Add a flag reader
+    int n;
+    if (argc > 1) {
+	n = stoi(argv[1]);
+    } else {
+	n = 1000;
     }
+    return n;
 }
 
 vector<std::complex<double>> discreteFourierTransform(vector<std::complex<double>> input)
@@ -58,7 +122,6 @@ vector<std::complex<double>> discreteFourierTransform(vector<std::complex<double
     //set output vector to have enough space
     output.reserve(N);
 
-    auto start = high_resolution_clock::now();  //start clock to measure execution time
     //sigma notation algorithm start
     for (int k = 0; k < K; k++)
     {
@@ -74,13 +137,6 @@ vector<std::complex<double>> discreteFourierTransform(vector<std::complex<double
         }
         //add value to the output vector
         output.push_back(innerSum);
-    }
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(stop - start);
-    cout << __func__ << " returned in " << duration.count() << " microseconds" << endl;
-
-    for (int i = 0; i < 6; i++) {
-        cout << output[i] << endl;
     }
     
     return output;
@@ -105,8 +161,6 @@ vector<std::complex<double>> discreteFourierTransformFaster(vector<std::complex<
     //set output vector to have enough space
     output.reserve(N);
 
-    auto start = high_resolution_clock::now();  //start clock to measure execution time
-
     for (k = 0; k < K; k++)
     {
         innerSum = std::complex<double>(0,0);
@@ -122,13 +176,6 @@ vector<std::complex<double>> discreteFourierTransformFaster(vector<std::complex<
         }
         //add value to the output vector
         output.push_back(innerSum);
-    }
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(stop - start);
-    cout << __func__ << " returned in " << duration.count() << " microseconds" << endl;
-
-    for (int i = 0; i < 6; i++) {
-        cout << output[i] << endl;
     }
     
     return output;
@@ -148,8 +195,6 @@ vector<std::complex<double>> discreteFourierTransformTurkey(vector<std::complex<
 
     //set output vector to have enough space
     output.reserve(N);
-
-    auto start = high_resolution_clock::now();  //start clock to measure execution time
     
     for (int k = 0; k < K; k++)
     {
@@ -175,21 +220,12 @@ vector<std::complex<double>> discreteFourierTransformTurkey(vector<std::complex<
         //add value to the output vector
         output.push_back(innerSum);
     }
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(stop - start);
-    cout << __func__ << " returned in " << duration.count() << " microseconds" << endl;
-
-    for (int i = 0; i < 6; i++) {
-        cout << output[i] << endl;
-    }
     
     return output;
 }
 
 vector<float> floatGenerator(int vectorSize)
 {
-    auto start = high_resolution_clock::now();  //start clock to measure execution time
-
     //initialize stuff fo random float generator
     default_random_engine floatGenerator;
     mt19937 mt(floatGenerator());
@@ -203,9 +239,6 @@ vector<float> floatGenerator(int vectorSize)
         floatVector.push_back(uniform_distance(mt));
         //cout << "rand is " << uniform_distance(mt) << endl;
     }
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(stop - start);
-    cout << "generated vector of " << vectorSize << " elements in " << duration.count() << " microseconds" << endl;
     return floatVector;
 }
 
@@ -220,14 +253,10 @@ vector<std::complex<double>> signalGenerator(int sampleSize)
     vector<std::complex<double>> output; //output vector to store the test signal
     output.reserve(N);  //allocate proper size for vector
 
-    auto start = high_resolution_clock::now();  //start clock to measure execution time
     for (int i = 0; i < N; i++) {
         auto sample = std::complex<double>(cos((2 * M_PI/ N) * amplitude * i + shift),0.0);
-
         output.push_back(sample);
     }
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(stop - start);
-    cout << __func__ << " returned in " << duration.count() << " microseconds" << endl;
+    
     return output;
 }
