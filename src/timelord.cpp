@@ -1,4 +1,4 @@
-#include "../include/Timelord.h"
+#include "../include/timelord.h"
 #include <iostream>
 
 Timelord::Timelord()

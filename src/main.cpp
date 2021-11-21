@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <string>
 #include <fstream>
-#include "../include/Timelord.h"
+#include "../include/timelord.h"
 
 
 using namespace std::chrono;
@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
 
     // Init Variables
     high_resolution_clock::time_point start, stop;
-    duration<double, micro> duration;
+    duration<double> duration;
     vector<complex<double>> input, output;
     Timelord newTimeLord();
 
@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
     input = signalGenerator(n);
     stop = high_resolution_clock::now();
     duration = stop - start;
-    cout << "done in " << duration.count() << " microseconds" << endl << endl;
+    cout << "done in " << duration.count() << " seconds" << endl << endl;
 
 
     // DFT
@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
     output = discreteFourierTransform(input);
     stop = high_resolution_clock::now();
     duration = stop - start;
-    cout << "done in " << duration.count() << " microseconds" << endl;
+    cout << "done in " << duration.count() << " seconds" << endl;
     writeToFile("dft.txt", output);
 
     // DFTF
@@ -67,7 +67,7 @@ int main(int argc, char* argv[]) {
     output = parallelDiscreteFourierTransform(input);
     stop = high_resolution_clock::now();
     duration = stop - start;
-    cout << "done in " << duration.count() << " microseconds" << endl;
+    cout << "done in " << duration.count() << " seconds" << endl;
     writeToFile("pdft.txt", output);
 
 
@@ -77,7 +77,7 @@ int main(int argc, char* argv[]) {
     output = discreteFourierTransformTurkey(input);
     stop = high_resolution_clock::now();
     duration = stop - start;
-    cout << "done in " << duration.count() << " microseconds" << endl;
+    cout << "done in " << duration.count() << " seconds" << endl;
     writeToFile("ct.txt", output);
 
 
@@ -95,13 +95,13 @@ void processArgs(int argc, char* argv[])
 void writeToFile(string file, vector<complex<double>> output)
 {
     #ifdef PRINT
-	cout << "Writing to file ... ";
-	ofstream f;
-	f.open("out/" + file, ios::trunc);
-	for (int i = 0 ; i < n; i++)
-	    f << output[i].real() << ", " << output[i].imag() << endl;
-	f.close();
-	cout << "done" << endl << endl;
+		cout << "Writing to file ... ";
+		ofstream f;
+		f.open("out/" + file, ios::trunc);
+		for (int i = 0 ; i < n; i++)
+			f << output[i].real() << ", " << output[i].imag() << endl;
+		f.close();
+		cout << "done" << endl << endl;
     #endif
 }
 
@@ -124,17 +124,17 @@ vector<complex<double>> discreteFourierTransform(vector<complex<double>> input)
     for (int k = 0; k < K; k++)
     {
         innerSum = complex<double>(0,0);
-        for (int n = 0; n < N; n++) {
-            //process real and imaginary parts of sum via definition in "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
+		for (int n = 0; n < N; n++) {
+            // process real and imaginary parts of sum via definition in
+            // "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
             double real = cos(((2 * M_PI) / N) * k * n);
             double imag = sin(((2 * M_PI) / N) * k * n);
-
-            //store as std::complex double for multiplication
-            complex<double> w (real, -imag);
-            innerSum += input[n] * w;
-        }
+        
+			complex<double> w (real, -imag);
+			innerSum += input[n] * w;
+		}
         //add value to the output vector
-        output.push_back(innerSum);
+	    output.push_back(innerSum);
     }
     
     return output;
@@ -162,17 +162,20 @@ vector<complex<double>> parallelDiscreteFourierTransform(vector<complex<double>>
     for (k = 0; k < K; k++)
     {
         innerSum = complex<double>(0,0);
-	#pragma omp parallel for reduction(+ : innerSum)
-        for (n = 0; n < N; n++) {
-            //process real and imaginary parts of sum via definition in "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
-            double real = cos(((2 * M_PI) / N) * k * n);
-            double imag = sin(((2 * M_PI) / N) * k * n);
-
-            //store as std::complex double for multiplication
-            complex<double> w (real, -imag);
-	    complex<double> tmp = input[n] * w;
-            innerSum += tmp;
-        }
+        complex<double> w;
+		complex<double> tmp;
+				
+		//#pragma omp parallel for default(none) private(tmp, n) shared(innerSum, N, k, input)
+		for (int n = 0; n < N; n++) {
+            // process real and imaginary parts of sum via definition in
+			// "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
+			tmp.real(cos(((2 * M_PI) / N) * k * n));
+			tmp.imag(-sin(((2 * M_PI) / N) * k * n));
+        
+			tmp *= input[n];
+			//#pragma omp critical
+			innerSum += tmp;
+		}
         //add value to the output vector
         output.push_back(innerSum);
     }
@@ -199,7 +202,8 @@ vector<complex<double>> discreteFourierTransformTurkey(vector<complex<double>> i
     {
         innerSum = complex<double>(0,0);
         for (int n = 0; n < N / 2 - 1; n++) {
-            //process real and imaginary parts of sum via definition in "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
+            // process real and imaginary parts of sum via definition in
+            // "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
             double real = cos(((2 * M_PI) / (N / 2)) * k * (2 * n));
             double imag = sin(((2 * M_PI) / (N / 2)) * k * (2 * n));
 
@@ -208,7 +212,8 @@ vector<complex<double>> discreteFourierTransformTurkey(vector<complex<double>> i
             innerSum += input[n] * w;
         }
         for (int n = 1; n < N / 2 - 1; n++) {
-            //process real and imaginary parts of sum via definition in "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
+            // process real and imaginary parts of sum via definition in
+            // "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
             double real = cos(((2 * M_PI) / (N / 2)) * k * (2 * n + 1));
             double imag = sin(((2 * M_PI) / (N / 2)) * k * (2 * n + 1));
 
