@@ -151,7 +151,7 @@ vector<complex<double>> parallelDiscreteFourierTransform(vector<complex<double>>
     int n;
 
     //init variable for internal loop
-    complex<double> innerSum;
+    complex<double> innerSum = complex<double>(0,0);
 
     //init vector of std::complex doubles for results
     vector<complex<double>> output;
@@ -159,27 +159,28 @@ vector<complex<double>> parallelDiscreteFourierTransform(vector<complex<double>>
     //set output vector to have enough space
     output.reserve(N);
 
-    for (k = 0; k < K; k++)
-    {
-        innerSum = complex<double>(0,0);
-        complex<double> w;
-		complex<double> tmp;
-				
-		//#pragma omp parallel for default(none) private(tmp, n) shared(innerSum, N, k, input)
-		for (int n = 0; n < N; n++) {
-            // process real and imaginary parts of sum via definition in
-			// "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
-			tmp.real(cos(((2 * M_PI) / N) * k * n));
-			tmp.imag(-sin(((2 * M_PI) / N) * k * n));
-        
-			tmp *= input[n];
-			//#pragma omp critical
-			innerSum += tmp;
+	innerSum = complex<double>(0,0);
+	complex<double> w;
+	complex<double> tmp;
+
+	#pragma omp parallel for default(none) firstprivate(innerSum) private(k, tmp, w, n) shared(input, output, K, N)  
+	//{
+		for (k = 0; k < K; k++) {
+			for (int n = 0; n < N; n++) {
+				// process real and imaginary parts of sum via definition in
+				// "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
+				tmp.real(cos(((2 * M_PI) / N) * k * n));
+				tmp.imag(-sin(((2 * M_PI) / N) * k * n));
+
+				tmp *= input[n];
+				#pragma omp critical
+				innerSum += tmp;
+			}
+			#pragma omp critical
+			output.push_back(innerSum);
 		}
-        //add value to the output vector
-        output.push_back(innerSum);
-    }
-    
+    //}
+
     return output;
 }
 
