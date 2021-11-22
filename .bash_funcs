@@ -1,4 +1,0 @@
-dif ()
-{
-	diff -y --suppress-common-lines "$1" "$2"
-}
