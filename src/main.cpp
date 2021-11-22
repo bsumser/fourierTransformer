@@ -13,6 +13,8 @@
 #include <stdio.h>
 #include <string>
 #include <fstream>
+#include <pthread.h>
+#include <omp.h>
 #include "../include/timelord.h"
 
 
@@ -50,6 +52,7 @@ int main(int argc, char* argv[]) {
     stop = high_resolution_clock::now();
     duration = stop - start;
     cout << "done in " << duration.count() << " seconds" << endl << endl;
+	writeToFile("sig.txt", input);
 
 
     // DFT
@@ -120,7 +123,9 @@ vector<complex<double>> discreteFourierTransform(vector<complex<double>> input)
     //set output vector to have enough space
     output.reserve(N);
 
-    //sigma notation algorithm start
+	double test = 0.00000000001;
+    
+	//sigma notation algorithm start
     for (int k = 0; k < K; k++)
     {
         innerSum = complex<double>(0,0);
@@ -130,6 +135,12 @@ vector<complex<double>> discreteFourierTransform(vector<complex<double>> input)
             double real = cos(((2 * M_PI) / N) * k * n);
             double imag = sin(((2 * M_PI) / N) * k * n);
         
+			if (real < test && real > -test) 
+				real = 0.0;
+
+			if (imag < test && imag > -test) 
+				imag = 0.0;
+
 			complex<double> w (real, -imag);
 			innerSum += input[n] * w;
 		}
@@ -160,26 +171,36 @@ vector<complex<double>> parallelDiscreteFourierTransform(vector<complex<double>>
     output.reserve(N);
 
 	innerSum = complex<double>(0,0);
-	complex<double> w;
 	complex<double> tmp;
 
-	#pragma omp parallel for default(none) firstprivate(innerSum) private(k, tmp, w, n) shared(input, output, K, N)  
-	//{
-		for (k = 0; k < K; k++) {
-			for (int n = 0; n < N; n++) {
-				// process real and imaginary parts of sum via definition in
-				// "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
-				tmp.real(cos(((2 * M_PI) / N) * k * n));
-				tmp.imag(-sin(((2 * M_PI) / N) * k * n));
+	double real, imag;
 
-				tmp *= input[n];
-				#pragma omp critical
-				innerSum += tmp;
-			}
-			#pragma omp critical
-			output.push_back(innerSum);
+	double test = 0.00000000001;
+
+	#pragma omp parallel for default(none) private(real, imag, innerSum, k, tmp, n) shared(input, output, K, N, cout, test)
+	for (k = 0; k < K; k++) {
+		innerSum = complex<double>(0,0);	
+		for (int n = 0; n < N; n++) {
+			// process real and imaginary parts of sum via definition in
+			// "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
+			real = cos(((2 * M_PI) / N) * k * n);
+			imag = -sin(((2 * M_PI) / N) * k * n);
+
+			if (real < test && real > -test) 
+				real = 0.0;
+
+			if (imag < test && imag > -test) 
+				imag = 0.0;
+
+			tmp.real(real);
+			tmp.imag(imag);
+			tmp *= input[n];
+	
+			innerSum += tmp;
 		}
-    //}
+		#pragma omp critical
+		output.push_back(innerSum);
+	}
 
     return output;
 }
@@ -250,17 +271,22 @@ vector<float> floatGenerator(int vectorSize)
 vector<complex<double>> signalGenerator(int sampleSize)
 {
     int N = sampleSize;
-    double amplitude = 3;  //amplitude, peak deviation from 0
+    double amp = 3;  //amplitude, peak deviation from 0
     double freq = 0;   //ordinary frequency, oscillations
     double time = 0;   //time
     double shift = M_PI / 2;  //phase shift of signal
+
+	double test = 0.00000000001;
 
     vector<complex<double>> output; //output vector to store the test signal
     output.reserve(N);  //allocate proper size for vector
 
     //#pragma omp parallel for
     for (int i = 0; i < N; i++) {
-        auto sample = complex<double>(cos((2 * M_PI/ N) * amplitude * i + shift),0.0);
+		double tmp = amp * cos((2 * M_PI / N) * i + shift);
+		if (tmp < test && tmp > -test) 
+			tmp = 0.0;
+		auto sample = complex<double>(tmp, 0.0);
         output.push_back(sample);
     }
     
