@@ -32,6 +32,7 @@ vector<complex<double>> signalGenerator(int sampleSize);
 
 
 int n = 1000;
+double test = 0.000000001;
 
 
 int main(int argc, char* argv[]) {
@@ -114,8 +115,12 @@ vector<complex<double>> discreteFourierTransform(vector<complex<double>> input)
     int N = input.size();
     int K = input.size();
 
+	int k;
+	int n;
+
+
     //init variable for internal loop
-    complex<double> innerSum;
+    complex<double> innerSum = complex<double>(0.0,0.0);
 
     //init vector of std::complex doubles for results
     vector<complex<double>> output;
@@ -123,28 +128,27 @@ vector<complex<double>> discreteFourierTransform(vector<complex<double>> input)
     //set output vector to have enough space
     output.reserve(N);
 
-	double test = 0.00000000001;
-    
+	complex<double> tmp = complex<double>(0.0,0.0);
+
+	double real = 0.0;
+	double imag = 0.0;
+
 	//sigma notation algorithm start
-    for (int k = 0; k < K; k++)
-    {
-        innerSum = complex<double>(0,0);
-		for (int n = 0; n < N; n++) {
-            // process real and imaginary parts of sum via definition in
-            // "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
-            double real = cos(((2 * M_PI) / N) * k * n);
-            double imag = sin(((2 * M_PI) / N) * k * n);
-        
-			if (real < test && real > -test) 
-				real = 0.0;
+    for (k = 0; k < K; k++) {
+        innerSum = complex<double>(0.0,0.0);
+		for (n = 0; n < N; n++) {
+	        real = cos((2 * M_PI * k * n) / N);
+            imag = -sin((2 * M_PI * k * n) / N);
 
-			if (imag < test && imag > -test) 
-				imag = 0.0;
-
-			complex<double> w (real, -imag);
-			innerSum += input[n] * w;
+			tmp.real(real);
+			tmp.imag(imag);
+			tmp *= input[n];
+			innerSum += tmp;
 		}
-        //add value to the output vector
+		if (fabs(innerSum.real()) < test)
+			innerSum.real(0.0);
+		if (fabs(innerSum.imag()) < test)
+			innerSum.imag(0.0);
 	    output.push_back(innerSum);
     }
     
@@ -162,44 +166,37 @@ vector<complex<double>> parallelDiscreteFourierTransform(vector<complex<double>>
     int n;
 
     //init variable for internal loop
-    complex<double> innerSum = complex<double>(0,0);
+    complex<double> innerSum = complex<double>(0.0,0.0);
 
     //init vector of std::complex doubles for results
     vector<complex<double>> output;
 
     //set output vector to have enough space
-    output.reserve(N);
+    output.resize(N);
 
-	innerSum = complex<double>(0,0);
-	complex<double> tmp;
+	complex<double> tmp = complex<double>(0.0,0.0);
 
-	double real, imag;
-
-	double test = 0.00000000001;
+	double real = 0.0;
+	double imag = 0.0;
 
 	#pragma omp parallel for default(none) private(real, imag, innerSum, k, tmp, n) shared(input, output, K, N, cout, test)
 	for (k = 0; k < K; k++) {
-		innerSum = complex<double>(0,0);	
-		for (int n = 0; n < N; n++) {
-			// process real and imaginary parts of sum via definition in
-			// "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
+		innerSum = complex<double>(0.0,0.0);	
+		for (n = 0; n < N; n++) {
 			real = cos(((2 * M_PI) / N) * k * n);
 			imag = -sin(((2 * M_PI) / N) * k * n);
-
-			if (real < test && real > -test) 
-				real = 0.0;
-
-			if (imag < test && imag > -test) 
-				imag = 0.0;
 
 			tmp.real(real);
 			tmp.imag(imag);
 			tmp *= input[n];
-	
 			innerSum += tmp;
 		}
+		if (fabs(innerSum.real()) < test)
+			innerSum.real(0.0);
+		if (fabs(innerSum.imag()) < test)
+			innerSum.imag(0.0);
 		#pragma omp critical
-		output.push_back(innerSum);
+		output.at(k) = innerSum;
 	}
 
     return output;
@@ -284,7 +281,7 @@ vector<complex<double>> signalGenerator(int sampleSize)
     //#pragma omp parallel for
     for (int i = 0; i < N; i++) {
 		double tmp = amp * cos((2 * M_PI / N) * i + shift);
-		if (tmp < test && tmp > -test) 
+		if (fabs(tmp) < test) 
 			tmp = 0.0;
 		auto sample = complex<double>(tmp, 0.0);
         output.push_back(sample);
