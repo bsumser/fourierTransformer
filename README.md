@@ -11,6 +11,7 @@
 
 * Compile with "make" and run with "./main". Object files can be removed with "make clean".
 * Dependencies
+OpenCV is required for image processing. Here is a link from StackOverflow on [installation](https://stackoverflow.com/questions/65738296/how-to-run-a-simple-opencv-code-in-c-on-linux).
 * Launch options
 
 ### Contribution guidelines ###
