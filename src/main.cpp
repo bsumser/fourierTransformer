@@ -16,6 +16,7 @@
 #include <pthread.h>
 #include <omp.h>
 #include "../include/timelord.h"
+#include "wavio.h"
 
 
 using namespace std::chrono;
@@ -36,9 +37,24 @@ double test = 0.000000001;
 
 
 int main(int argc, char* argv[]) {
-    // Get N
     processArgs(argc, argv);
-    cout << "N = " << n << endl;
+	
+	const char* inFile = "wavs/a.wav";
+	vector<double> sig;
+	sig = read_wav(inFile);
+
+	vector<complex<double>> data;
+	data.reserve(sig.size());
+
+	for (int i = 0; i < sig.size(); i++) {
+		complex<double> tmp;
+		tmp.real(sig[i]);
+		tmp.imag(0.0);
+		data.push_back(tmp);
+	}
+
+
+	cout << "N = " << n << endl;
 
     // Init Variables
     high_resolution_clock::time_point start, stop;
@@ -59,16 +75,17 @@ int main(int argc, char* argv[]) {
     // DFT
     cout << "Starting DFT ... ";
     start = high_resolution_clock::now();
-    output = discreteFourierTransform(input);
+    output = discreteFourierTransform(data);
     stop = high_resolution_clock::now();
     duration = stop - start;
     cout << "done in " << duration.count() << " seconds" << endl;
     writeToFile("dft.txt", output);
 
+
     // DFTF
     cout << "Starting // DFT ... ";
     start = high_resolution_clock::now();
-    output = parallelDiscreteFourierTransform(input);
+    output = parallelDiscreteFourierTransform(data);
     stop = high_resolution_clock::now();
     duration = stop - start;
     cout << "done in " << duration.count() << " seconds" << endl;
@@ -84,15 +101,15 @@ int main(int argc, char* argv[]) {
     cout << "done in " << duration.count() << " seconds" << endl;
     writeToFile("ct.txt", output);
 
-
-    return 0;
+    
+	return 0;
 }
 
 void processArgs(int argc, char* argv[])
 {
     // TODO: Add a flag reader
     if (argc > 1) {
-	n = stoi(argv[1]);
+		n = stoi(argv[1]);
     }
 }
 
@@ -223,8 +240,8 @@ vector<complex<double>> discreteFourierTransformTurkey(vector<complex<double>> i
         for (int n = 0; n < N / 2 - 1; n++) {
             // process real and imaginary parts of sum via definition in
             // "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
-            double real = cos(((2 * M_PI) / (N / 2)) * k * (2 * n));
-            double imag = sin(((2 * M_PI) / (N / 2)) * k * (2 * n));
+            double real = cos((2 * M_PI * k * 2 * n) / (N / 2));
+            double imag = sin((2 * M_PI * k * 2 * n) / (N / 2));
 
             //store as std::complex double for multiplication
             complex<double> w (real, -imag);
@@ -233,8 +250,8 @@ vector<complex<double>> discreteFourierTransformTurkey(vector<complex<double>> i
         for (int n = 1; n < N / 2 - 1; n++) {
             // process real and imaginary parts of sum via definition in
             // "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
-            double real = cos(((2 * M_PI) / (N / 2)) * k * (2 * n + 1));
-            double imag = sin(((2 * M_PI) / (N / 2)) * k * (2 * n + 1));
+            double real = cos((2 * M_PI * k * 2 * n) / (N / 2));
+            double imag = sin((2 * M_PI * k * 2 * n) / (N / 2));
 
             //store as std::complex double for multiplication
             complex<double> w (real, -imag);
@@ -267,23 +284,24 @@ vector<float> floatGenerator(int vectorSize)
 
 vector<complex<double>> signalGenerator(int sampleSize)
 {
-    int N = sampleSize;
-    double amp = 3;  //amplitude, peak deviation from 0
-    double freq = 0;   //ordinary frequency, oscillations
-    double time = 0;   //time
-    double shift = M_PI / 2;  //phase shift of signal
+    double step = 1.0 / (double)sampleSize;
+	double amp = 1.0;
+    double freq = 1.0 / 440.0;
+	double period = (2.0 * (double)M_PI) / freq;
+    double horizontal = 0.0;
+    double vertical = 0.0;
 
 	double test = 0.00000000001;
 
     vector<complex<double>> output; //output vector to store the test signal
-    output.reserve(N);  //allocate proper size for vector
+    output.reserve(sampleSize);  //allocate proper size for vector
 
     //#pragma omp parallel for
-    for (int i = 0; i < N; i++) {
-		double tmp = amp * cos((2 * M_PI / N) * i + shift);
+    for (long double i = 0.0; i < (long double)1.0; i += step) {
+		long double tmp = sinl((long double)880.0 * (long double)M_PI * i);
 		if (fabs(tmp) < test) 
 			tmp = 0.0;
-		auto sample = complex<double>(tmp, 0.0);
+		complex<double> sample = complex<double>(tmp, 0.0);
         output.push_back(sample);
     }
     
