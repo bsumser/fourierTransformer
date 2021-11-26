@@ -12,11 +12,12 @@
 #include <chrono>
 #include <stdio.h>
 #include <string>
+#include <unistd.h>
 #include <fstream>
 #include <pthread.h>
 #include <omp.h>
 #include "../include/timelord.h"
-#include "wavio.h"
+#include "../include/wavio.h"
 
 
 using namespace std::chrono;
@@ -24,7 +25,7 @@ using namespace std;
 
 
 vector<float> floatGenerator(int vectorSize);
-void processArgs(int argc, char* argv[]);
+int processArgs(int argc, char* argv[]);
 void writeToFile(string file, vector<complex<double>> output);
 vector<complex<double>> discreteFourierTransform(vector<complex<double>> input);
 vector<complex<double>> parallelDiscreteFourierTransform(vector<complex<double>> input);
@@ -34,48 +35,57 @@ vector<complex<double>> signalGenerator(int sampleSize);
 
 int n = 1000;
 double test = 0.000000001;
+bool wav = false;
+bool image = false;
+bool num = false;
+const char* inFile = "wavs/a.wav";
 
 
 int main(int argc, char* argv[]) {
-    processArgs(argc, argv);
-	
-	const char* inFile = "wavs/a.wav";
-	vector<double> sig;
-	sig = read_wav(inFile);
-
-	vector<complex<double>> data;
-	data.reserve(sig.size());
-
-	for (int i = 0; i < sig.size(); i++) {
-		complex<double> tmp;
-		tmp.real(sig[i]);
-		tmp.imag(0.0);
-		data.push_back(tmp);
-	}
-
-
-	cout << "N = " << n << endl;
+    if (processArgs(argc, argv))
+		return 1;
 
     // Init Variables
     high_resolution_clock::time_point start, stop;
+    Timelord newTimeLord();
     duration<double> duration;
     vector<complex<double>> input, output;
-    Timelord newTimeLord();
 
-    // Signal Generator
-    cout << "Generating signal ... ";
-    start = high_resolution_clock::now();
-    input = signalGenerator(n);
-    stop = high_resolution_clock::now();
-    duration = stop - start;
-    cout << "done in " << duration.count() << " seconds" << endl << endl;
-	writeToFile("sig.txt", input);
+	if (wav) {
+		cout << "Reading " << inFile << ":" << endl;
+		start = high_resolution_clock::now();
+		vector<complex<double>> intput = read_wav(inFile);
+		stop = high_resolution_clock::now();
+		cout << "done in " << duration.count() << " seconds" << endl;
+		n = input.size();
+	}
 
+	if (image) {
+		cout << "Looking at " << inFile << " ... ";
+		start = high_resolution_clock::now();
+		vector<complex<double>> intput;
+		stop = high_resolution_clock::now();
+		cout << "done in " << duration.count() << " seconds" << endl;
+		n = intput.size();
+	}
+
+	cout << "N = " << n << endl;	
+	
+	if (!wav && !image) {
+	    // Signal Generator
+		cout << "Generating signal ... ";
+	    start = high_resolution_clock::now();
+	    input = signalGenerator(n);
+	    stop = high_resolution_clock::now();
+	    duration = stop - start;
+	    cout << "done in " << duration.count() << " seconds" << endl << endl;
+		writeToFile("sig.txt", input);
+	}
 
     // DFT
     cout << "Starting DFT ... ";
     start = high_resolution_clock::now();
-    output = discreteFourierTransform(data);
+    output = discreteFourierTransform(input);
     stop = high_resolution_clock::now();
     duration = stop - start;
     cout << "done in " << duration.count() << " seconds" << endl;
@@ -85,7 +95,7 @@ int main(int argc, char* argv[]) {
     // DFTF
     cout << "Starting // DFT ... ";
     start = high_resolution_clock::now();
-    output = parallelDiscreteFourierTransform(data);
+    output = parallelDiscreteFourierTransform(input);
     stop = high_resolution_clock::now();
     duration = stop - start;
     cout << "done in " << duration.count() << " seconds" << endl;
@@ -100,17 +110,39 @@ int main(int argc, char* argv[]) {
     duration = stop - start;
     cout << "done in " << duration.count() << " seconds" << endl;
     writeToFile("ct.txt", output);
-
-    
+   
+ 
 	return 0;
 }
 
-void processArgs(int argc, char* argv[])
+int processArgs(int argc, char* argv[])
 {
-    // TODO: Add a flag reader
-    if (argc > 1) {
-		n = stoi(argv[1]);
-    }
+	int opt;
+	while ((opt = getopt(argc, argv, "w::i::n:")) != -1) {
+		switch (opt) {
+			case 'w':
+				wav = true;
+				if (optarg == NULL && optind < argc && argv[optind][0] != '-')
+					optarg = argv[optind++];
+				if (optarg != NULL)
+					inFile = optarg;
+				break;
+			case 'i':
+				image = true;
+				if (optarg == NULL && optind < argc && argv[optind][0] != '-')
+					optarg = argv[optind++];
+				if (optarg != NULL)
+					inFile = optarg;
+				break;
+			case 'n':
+				num = true;	
+				n = stoi(optarg);
+				break;
+			case '?':
+				return 1;
+		}
+	}
+	return 0;
 }
 
 void writeToFile(string file, vector<complex<double>> output)

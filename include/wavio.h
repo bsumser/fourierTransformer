@@ -33,36 +33,33 @@ typedef struct  WAV_HEADER
 int getFileSize(FILE* inFile);
 
 
-vector<double> read_wav(const char* inFile)
+vector<complex<double>> read_wav(const char* inFile)
 {
     wav_hdr wavHeader;
     int headerSize = sizeof(wav_hdr), filelength = 0;
 
-    cout << "In file name: " << inFile << endl;
-    
     FILE* wavFile = fopen(inFile, "r");
     if (wavFile == nullptr)
         cout << "Unable to open wave file: " << inFile << endl;
 
-	vector<double> data;
+	vector<complex<double>> data;
 
     //Read the header
     size_t bytesRead = fread(&wavHeader, 1, headerSize, wavFile);
     cout << "Header Read " << bytesRead << " bytes." << endl;
-    if (bytesRead > 0)
-    {
+    if (bytesRead > 0) {
         //Read the data
         uint16_t bytesPerSample = wavHeader.bitsPerSample / 8;      //Number     of bytes per sample
         uint64_t numSamples = wavHeader.Subchunk2Size / bytesPerSample; //How many samples are in the wav file?
         short buffer;
         
 		data.reserve(numSamples);
-		while ((bytesRead = fread((unsigned char*)&buffer, sizeof(buffer), 1, wavFile)) > 0)
-        {
-			data.push_back(buffer / 32768.0);
+		while ((bytesRead = fread((unsigned char*)&buffer, sizeof(buffer), 1, wavFile)) > 0) {
+			complex<double> tmp;
+			tmp.real(buffer / 32768.0);
+			tmp.imag(0.0);
+			data.push_back(tmp);
 		}
-        
-		cout << "Read " << data.size() << " bytes" << endl;
 
         filelength = getFileSize(wavFile);
 
@@ -85,6 +82,7 @@ vector<double> read_wav(const char* inFile)
         cout << "Data string                : " << wavHeader.Subchunk2ID[0] << wavHeader.Subchunk2ID[1] << wavHeader.Subchunk2ID[2] << wavHeader.Subchunk2ID[3] << endl;
     }
     fclose(wavFile);
+
 	return data;
 }
 
