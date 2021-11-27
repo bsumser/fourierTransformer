@@ -12,10 +12,12 @@
 #include <chrono>
 #include <stdio.h>
 #include <string>
+#include <unistd.h>
 #include <fstream>
 #include <pthread.h>
 #include <omp.h>
 #include "../include/timelord.h"
+#include "../include/wavio.h"
 
 
 using namespace std::chrono;
@@ -23,38 +25,66 @@ using namespace std;
 
 
 vector<float> floatGenerator(int vectorSize);
-void processArgs(int argc, char* argv[]);
+int processArgs(int argc, char* argv[]);
 void writeToFile(string file, vector<complex<double>> output);
-vector<complex<double>> discreteFourierTransform(vector<complex<double>> input);
-vector<complex<double>> parallelDiscreteFourierTransform(vector<complex<double>> input);
-vector<complex<double>> discreteFourierTransformTurkey(vector<complex<double>> input);
-vector<complex<double>> signalGenerator(int sampleSize);
+void writeVectorToFile(string file, vector<double> output);
+vector<complex<double>> discreteFourierTransform(vector<double> input);
+vector<complex<double>> parallelDiscreteFourierTransform(vector<double> input);
+vector<complex<double>> discreteFourierTransformTurkey(vector<double> input);
+vector<double> signalGenerator(int sampleSize);
+vector<double> detectPitches(vector<complex<double>> output);
+unsigned int bitReverse(unsigned int input, int n);
 
 
 int n = 1000;
 double test = 0.000000001;
+bool wav = false;
+bool image = false;
+bool num = false;
+const char* inFile = "wavs/a.wav";
 
 
 int main(int argc, char* argv[]) {
-    // Get N
-    processArgs(argc, argv);
-    cout << "N = " << n << endl;
+    if (processArgs(argc, argv))
+		return 1;
 
     // Init Variables
     high_resolution_clock::time_point start, stop;
-    duration<double> duration;
-    vector<complex<double>> input, output;
     Timelord newTimeLord();
+    duration<double> duration;
+    vector<double> input;
+	vector<complex<double>> output;
 
-    // Signal Generator
-    cout << "Generating signal ... ";
-    start = high_resolution_clock::now();
-    input = signalGenerator(n);
-    stop = high_resolution_clock::now();
-    duration = stop - start;
-    cout << "done in " << duration.count() << " seconds" << endl << endl;
-	writeToFile("sig.txt", input);
+	if (wav) {
+		cout << "Reading " << inFile << ":" << endl;
+		start = high_resolution_clock::now();
+		input = read_wav(inFile);
+		stop = high_resolution_clock::now();
+		cout << "done in " << duration.count() << " seconds" << endl;
+		n = input.size();
+		writeVectorToFile("sig.txt", input);
+	}
 
+	if (image) {
+		cout << "Looking at " << inFile << " ... ";
+		start = high_resolution_clock::now();
+		stop = high_resolution_clock::now();
+		cout << "done in " << duration.count() << " seconds" << endl;
+		n = input.size();
+	}
+
+	cout << "N = " << n << endl;	
+	
+	if (!wav && !image) {
+	    // Signal Generator
+		cout << "Generating signal ... ";
+	    start = high_resolution_clock::now();
+	    input = signalGenerator(n);
+	    stop = high_resolution_clock::now();
+	    duration = stop - start;
+	    cout << "done in " << duration.count() << " seconds" << endl << endl;
+		writeVectorToFile("sig.txt", input);
+	}
 
     // DFT
     cout << "Starting DFT ... ";
@@ -64,6 +94,7 @@ int main(int argc, char* argv[]) {
     duration = stop - start;
     cout << "done in " << duration.count() << " seconds" << endl;
     writeToFile("dft.txt", output);
+
 
     // DFTF
     cout << "Starting // DFT ... ";
@@ -75,7 +106,7 @@ int main(int argc, char* argv[]) {
     writeToFile("pdft.txt", output);
 
 
-    //DFTT
+    //DFTCT
     cout << "Starting DFT Cooley-Turkey ... ";
     start = high_resolution_clock::now();
     output = discreteFourierTransformTurkey(input);
@@ -83,33 +114,81 @@ int main(int argc, char* argv[]) {
     duration = stop - start;
     cout << "done in " << duration.count() << " seconds" << endl;
     writeToFile("ct.txt", output);
+   
+	if (wav) {
+		// Pitch Detection
+		cout << "Detecting Pitches ... ";
+		start = high_resolution_clock::now();
+		vector<double> pitches = detectPitches(output);
+		stop = high_resolution_clock::now();
+		duration = stop - start;
+		cout << "done in " << duration.count() << " seconds" << endl;
+		cout << "Pitches detected:" << endl;
+		for (unsigned int i = 0; i < pitches.size(); i++)
+			cout << pitches[i] << endl;
+	}
 
 
-    return 0;
+	return 0;
 }
 
-void processArgs(int argc, char* argv[])
+int processArgs(int argc, char* argv[])
 {
-    // TODO: Add a flag reader
-    if (argc > 1) {
-	n = stoi(argv[1]);
-    }
+	int opt;
+	while ((opt = getopt(argc, argv, "w::i::n:")) != -1) {
+		switch (opt) {
+			case 'w':
+				wav = true;
+				if (optarg == NULL && optind < argc && argv[optind][0] != '-')
+					optarg = argv[optind++];
+				if (optarg != NULL)
+					inFile = optarg;
+				break;
+			case 'i':
+				image = true;
+				if (optarg == NULL && optind < argc && argv[optind][0] != '-')
+					optarg = argv[optind++];
+				if (optarg != NULL)
+					inFile = optarg;
+				break;
+			case 'n':
+				num = true;	
+				n = stoi(optarg);
+				break;
+			case '?':
+				return 1;
+		}
+	}
+	return 0;
 }
 
-void writeToFile(string file, vector<complex<double>> output)
+void writeToFile(string file, vector<complex<double>> vec)
 {
     #ifdef PRINT
 		cout << "Writing to file ... ";
 		ofstream f;
 		f.open("out/" + file, ios::trunc);
 		for (int i = 0 ; i < n; i++)
-			f << output[i].real() << ", " << output[i].imag() << endl;
+			f << vec[i].real() << ", " << vec[i].imag() << endl;
 		f.close();
 		cout << "done" << endl << endl;
     #endif
 }
 
-vector<complex<double>> discreteFourierTransform(vector<complex<double>> input)
+void writeVectorToFile(string file, vector<double> vec)
+{
+    #ifdef PRINT
+		cout << "Writing to file ... ";
+		ofstream f;
+		f.open("out/" + file, ios::trunc);
+		for (int i = 0 ; i < n; i++)
+			f << vec[i] << endl;
+		f.close();
+		cout << "done" << endl << endl;
+    #endif
+}
+
+vector<complex<double>> discreteFourierTransform(vector<double> input)
 {
     //initialize sizes of samples
     int N = input.size();
@@ -155,7 +234,7 @@ vector<complex<double>> discreteFourierTransform(vector<complex<double>> input)
     return output;
 }
 
-vector<complex<double>> parallelDiscreteFourierTransform(vector<complex<double>> input)
+vector<complex<double>> parallelDiscreteFourierTransform(vector<double> input)
 {
     //initiliaze sizes of samples
     int N = input.size();
@@ -202,49 +281,61 @@ vector<complex<double>> parallelDiscreteFourierTransform(vector<complex<double>>
     return output;
 }
 
-vector<complex<double>> discreteFourierTransformTurkey(vector<complex<double>> input)
+vector<complex<double>> discreteFourierTransformTurkey(vector<double> input)
 {
-    //initiliaze sizes of samples
-    int N = input.size();
-    int K = input.size();
-
-    //init variable for internal loop
-    complex<double> innerSum;
-
-    //init vector of std::complex doubles for results
     vector<complex<double>> output;
 
-    //set output vector to have enough space
+	int high = ceil(log(input.size()) / log(2));
+	int pad = pow(2, high);
+
+	while ((int)input.size() < pad)
+		input.push_back(0.0);
+    
+	unsigned int N = input.size();
     output.reserve(N);
-    
-    for (int k = 0; k < K; k++)
-    {
-        innerSum = complex<double>(0,0);
-        for (int n = 0; n < N / 2 - 1; n++) {
-            // process real and imaginary parts of sum via definition in
-            // "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
-            double real = cos(((2 * M_PI) / (N / 2)) * k * (2 * n));
-            double imag = sin(((2 * M_PI) / (N / 2)) * k * (2 * n));
 
-            //store as std::complex double for multiplication
-            complex<double> w (real, -imag);
-            innerSum += input[n] * w;
-        }
-        for (int n = 1; n < N / 2 - 1; n++) {
-            // process real and imaginary parts of sum via definition in
-            // "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
-            double real = cos(((2 * M_PI) / (N / 2)) * k * (2 * n + 1));
-            double imag = sin(((2 * M_PI) / (N / 2)) * k * (2 * n + 1));
+	for (unsigned int i = 0; i < N; i++) {
+		int reversed = bitReverse(i, pad);
+		output.push_back(input[reversed]);
+	}
 
-            //store as std::complex double for multiplication
-            complex<double> w (real, -imag);
-            innerSum += input[n] * w;
-        }
-        //add value to the output vector
-        output.push_back(innerSum);
-    }
-    
+	cout << N << endl;
+
+	for (int s = 1; s <= pad; s++) {
+		cout << "s: " << s << endl;
+		int m = pow(2, s);
+		double real = cos((-2 * M_PI) / m);
+		double imag = -sin((-2 * M_PI) / m);
+		complex<double> wm;
+		wm.real(real);
+		wm.imag(imag);
+		for (int k = 0; k < pad; k++) {
+			cout << "k: " << k << endl;
+			complex<double> w;
+			w.real(1.0);
+			w.imag(0.0);
+			for (int j = 0; j < (m / 2) - 1; j++) {
+				cout << "j: " << j << endl;
+				complex<double> t = w * output[k + j + m / 2];
+				complex<double> u = output[k + j];
+				output[k + j] = u + t;
+				output[k + j + m / 2] = u - t;
+				w *= wm;
+			}
+		}
+	}
     return output;
+}
+
+unsigned int bitReverse(unsigned int num, int N)
+{
+	int n = 0;
+	for (int i = 0; i < N; i++) {
+		n <<= 1;
+		n |= (num & 1);
+		num >>= 1;
+	}
+	return n;
 }
 
 vector<float> floatGenerator(int vectorSize)
@@ -265,27 +356,31 @@ vector<float> floatGenerator(int vectorSize)
     return floatVector;
 }
 
-vector<complex<double>> signalGenerator(int sampleSize)
+vector<double> signalGenerator(int sampleSize)
 {
-    int N = sampleSize;
-    double amp = 3;  //amplitude, peak deviation from 0
-    double freq = 0;   //ordinary frequency, oscillations
-    double time = 0;   //time
-    double shift = M_PI / 2;  //phase shift of signal
-
+    double step = 1.0 / (double)sampleSize;
 	double test = 0.00000000001;
 
-    vector<complex<double>> output; //output vector to store the test signal
-    output.reserve(N);  //allocate proper size for vector
+    vector<double> output; //output vector to store the test signal
+    output.reserve(sampleSize);  //allocate proper size for vector
 
     //#pragma omp parallel for
-    for (int i = 0; i < N; i++) {
-		double tmp = amp * cos((2 * M_PI / N) * i + shift);
+    for (double i = 0.0; i < (double)1.0; i += step) {
+		double tmp = sin((double)880.0 * (double)M_PI * i);
 		if (fabs(tmp) < test) 
 			tmp = 0.0;
-		auto sample = complex<double>(tmp, 0.0);
-        output.push_back(sample);
+        output.push_back(tmp);
     }
     
     return output;
+}
+
+vector<double> detectPitches(vector<complex<double>> output)
+{
+	vector<double> pitches;
+	for (int i = 0; i < (int)output.size(); i++) {
+		if (fabs(output[i].imag() > 500.0))
+			pitches.push_back(i);
+	}
+	return pitches;
 }

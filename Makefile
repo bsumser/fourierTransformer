@@ -3,7 +3,7 @@ obj = $(src:.cpp=.o)
 
 CC = g++
 
-CXXFLAGS = -g -std=c++11 -fopenmp -DPRINT
+CXXFLAGS = -g -Wall -std=c++11 -fopenmp -DPRINT
 
 PROPOSAL = proposal
 
@@ -14,7 +14,7 @@ main: $(obj)
 
 clean:
 	rm -f $(obj) main
-	rm -f *.aux *.lof *.log *.lot *.toc *.bbl *.blg *.pdf
+	rm -f *.aux *.lof *.log *.lot *.toc *.bbl *.blg *.pdf out/*.txt
 
 run: $(PROPOSAL).pdf
 
