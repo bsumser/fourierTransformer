@@ -14,7 +14,7 @@ main: $(obj)
 
 clean:
 	rm -f $(obj) main
-	rm -f *.aux *.lof *.log *.lot *.toc *.bbl *.blg *.pdf
+	rm -f *.aux *.lof *.log *.lot *.toc *.bbl *.blg *.pdf out/*.txt
 
 run: $(PROPOSAL).pdf
 
