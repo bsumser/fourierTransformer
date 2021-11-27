@@ -5,7 +5,6 @@
 #include <filesystem>
 #include <unistd.h>
 
-
 using namespace std;
 
 
@@ -33,7 +32,7 @@ typedef struct  WAV_HEADER
 int getFileSize(FILE* inFile);
 
 
-vector<complex<double>> read_wav(const char* inFile)
+vector<double> read_wav(const char* inFile)
 {
     wav_hdr wavHeader;
     int headerSize = sizeof(wav_hdr), filelength = 0;
@@ -42,7 +41,7 @@ vector<complex<double>> read_wav(const char* inFile)
     if (wavFile == nullptr)
         cout << "Unable to open wave file: " << inFile << endl;
 
-	vector<complex<double>> data;
+	vector<double> data;
 
     //Read the header
     size_t bytesRead = fread(&wavHeader, 1, headerSize, wavFile);
@@ -53,12 +52,9 @@ vector<complex<double>> read_wav(const char* inFile)
         uint64_t numSamples = wavHeader.Subchunk2Size / bytesPerSample; //How many samples are in the wav file?
         short buffer;
         
-		data.reserve(numSamples);
+		data.reserve((int)numSamples);
 		while ((bytesRead = fread((unsigned char*)&buffer, sizeof(buffer), 1, wavFile)) > 0) {
-			complex<double> tmp;
-			tmp.real(buffer / 32768.0);
-			tmp.imag(0.0);
-			data.push_back(tmp);
+			data.push_back(buffer / 32768.0);
 		}
 
         filelength = getFileSize(wavFile);

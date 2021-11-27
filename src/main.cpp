@@ -27,11 +27,12 @@ using namespace std;
 vector<float> floatGenerator(int vectorSize);
 int processArgs(int argc, char* argv[]);
 void writeToFile(string file, vector<complex<double>> output);
-vector<complex<double>> discreteFourierTransform(vector<complex<double>> input);
-vector<complex<double>> parallelDiscreteFourierTransform(vector<complex<double>> input);
-vector<complex<double>> discreteFourierTransformTurkey(vector<complex<double>> input);
-vector<complex<double>> signalGenerator(int sampleSize);
-
+void writeVectorToFile(string file, vector<double> output);
+vector<complex<double>> discreteFourierTransform(vector<double> input);
+vector<complex<double>> parallelDiscreteFourierTransform(vector<double> input);
+vector<complex<double>> discreteFourierTransformTurkey(vector<double> input);
+vector<double> signalGenerator(int sampleSize);
+vector<double> detectPitches(vector<complex<double>> output);
 
 int n = 1000;
 double test = 0.000000001;
@@ -49,24 +50,26 @@ int main(int argc, char* argv[]) {
     high_resolution_clock::time_point start, stop;
     Timelord newTimeLord();
     duration<double> duration;
-    vector<complex<double>> input, output;
+    vector<double> input;
+	vector<complex<double>> output;
 
 	if (wav) {
 		cout << "Reading " << inFile << ":" << endl;
 		start = high_resolution_clock::now();
-		vector<complex<double>> intput = read_wav(inFile);
+		input = read_wav(inFile);
 		stop = high_resolution_clock::now();
 		cout << "done in " << duration.count() << " seconds" << endl;
 		n = input.size();
+		writeVectorToFile("sig.txt", input);
 	}
 
 	if (image) {
 		cout << "Looking at " << inFile << " ... ";
 		start = high_resolution_clock::now();
-		vector<complex<double>> intput;
+		input;
 		stop = high_resolution_clock::now();
 		cout << "done in " << duration.count() << " seconds" << endl;
-		n = intput.size();
+		n = input.size();
 	}
 
 	cout << "N = " << n << endl;	
@@ -79,7 +82,7 @@ int main(int argc, char* argv[]) {
 	    stop = high_resolution_clock::now();
 	    duration = stop - start;
 	    cout << "done in " << duration.count() << " seconds" << endl << endl;
-		writeToFile("sig.txt", input);
+		writeVectorToFile("sig.txt", input);
 	}
 
     // DFT
@@ -102,7 +105,7 @@ int main(int argc, char* argv[]) {
     writeToFile("pdft.txt", output);
 
 
-    //DFTT
+    //DFTCT
     cout << "Starting DFT Cooley-Turkey ... ";
     start = high_resolution_clock::now();
     output = discreteFourierTransformTurkey(input);
@@ -111,7 +114,20 @@ int main(int argc, char* argv[]) {
     cout << "done in " << duration.count() << " seconds" << endl;
     writeToFile("ct.txt", output);
    
- 
+	if (wav) {
+		// Pitch Detection
+		cout << "Detecting Pitches ... ";
+		start = high_resolution_clock::now();
+		vector<double> pitches = detectPitches(output);
+		stop = high_resolution_clock::now();
+		duration = stop - start;
+		cout << "done in " << duration.count() << " seconds" << endl;
+		cout << "Pitches detected:" << endl;
+		for (int i = 0; i < pitches.size(); i++)
+			cout << pitches[i] << endl;
+	}
+
+
 	return 0;
 }
 
@@ -145,20 +161,33 @@ int processArgs(int argc, char* argv[])
 	return 0;
 }
 
-void writeToFile(string file, vector<complex<double>> output)
+void writeToFile(string file, vector<complex<double>> vec)
 {
     #ifdef PRINT
 		cout << "Writing to file ... ";
 		ofstream f;
 		f.open("out/" + file, ios::trunc);
 		for (int i = 0 ; i < n; i++)
-			f << output[i].real() << ", " << output[i].imag() << endl;
+			f << vec[i].real() << ", " << vec[i].imag() << endl;
 		f.close();
 		cout << "done" << endl << endl;
     #endif
 }
 
-vector<complex<double>> discreteFourierTransform(vector<complex<double>> input)
+void writeVectorToFile(string file, vector<double> vec)
+{
+    #ifdef PRINT
+		cout << "Writing to file ... ";
+		ofstream f;
+		f.open("out/" + file, ios::trunc);
+		for (int i = 0 ; i < n; i++)
+			f << vec[i] << endl;
+		f.close();
+		cout << "done" << endl << endl;
+    #endif
+}
+
+vector<complex<double>> discreteFourierTransform(vector<double> input)
 {
     //initialize sizes of samples
     int N = input.size();
@@ -204,7 +233,7 @@ vector<complex<double>> discreteFourierTransform(vector<complex<double>> input)
     return output;
 }
 
-vector<complex<double>> parallelDiscreteFourierTransform(vector<complex<double>> input)
+vector<complex<double>> parallelDiscreteFourierTransform(vector<double> input)
 {
     //initiliaze sizes of samples
     int N = input.size();
@@ -251,7 +280,7 @@ vector<complex<double>> parallelDiscreteFourierTransform(vector<complex<double>>
     return output;
 }
 
-vector<complex<double>> discreteFourierTransformTurkey(vector<complex<double>> input)
+vector<complex<double>> discreteFourierTransformTurkey(vector<double> input)
 {
     //initiliaze sizes of samples
     int N = input.size();
@@ -314,7 +343,7 @@ vector<float> floatGenerator(int vectorSize)
     return floatVector;
 }
 
-vector<complex<double>> signalGenerator(int sampleSize)
+vector<double> signalGenerator(int sampleSize)
 {
     double step = 1.0 / (double)sampleSize;
 	double amp = 1.0;
@@ -325,17 +354,26 @@ vector<complex<double>> signalGenerator(int sampleSize)
 
 	double test = 0.00000000001;
 
-    vector<complex<double>> output; //output vector to store the test signal
+    vector<double> output; //output vector to store the test signal
     output.reserve(sampleSize);  //allocate proper size for vector
 
     //#pragma omp parallel for
-    for (long double i = 0.0; i < (long double)1.0; i += step) {
-		long double tmp = sinl((long double)880.0 * (long double)M_PI * i);
+    for (double i = 0.0; i < (double)1.0; i += step) {
+		double tmp = sin((double)880.0 * (double)M_PI * i);
 		if (fabs(tmp) < test) 
 			tmp = 0.0;
-		complex<double> sample = complex<double>(tmp, 0.0);
-        output.push_back(sample);
+        output.push_back(tmp);
     }
     
     return output;
+}
+
+vector<double> detectPitches(vector<complex<double>> output)
+{
+	vector<double> pitches;
+	for (int i = 0; i < output.size(); i++) {
+		if (fabs(output[i].imag() > 500.0))
+			pitches.push_back(i);
+	}
+	return pitches;
 }
