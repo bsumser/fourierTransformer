@@ -38,8 +38,9 @@ vector<double> read_wav(const char* inFile)
     int headerSize = sizeof(wav_hdr), filelength = 0;
 
     FILE* wavFile = fopen(inFile, "r");
-    if (wavFile == nullptr)
-        cout << "Unable to open wave file: " << inFile << endl;
+
+	if (wavFile == nullptr)
+		cout << "Unable to open wave file: " << inFile << endl;
 
 	vector<double> data;
 

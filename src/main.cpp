@@ -33,6 +33,8 @@ vector<complex<double>> parallelDiscreteFourierTransform(vector<double> input);
 vector<complex<double>> discreteFourierTransformTurkey(vector<double> input);
 vector<double> signalGenerator(int sampleSize);
 vector<double> detectPitches(vector<complex<double>> output);
+unsigned int bitReverse(unsigned int input, int n);
+
 
 int n = 1000;
 double test = 0.000000001;
@@ -66,7 +68,6 @@ int main(int argc, char* argv[]) {
 	if (image) {
 		cout << "Looking at " << inFile << " ... ";
 		start = high_resolution_clock::now();
-		input;
 		stop = high_resolution_clock::now();
 		cout << "done in " << duration.count() << " seconds" << endl;
 		n = input.size();
@@ -123,7 +124,7 @@ int main(int argc, char* argv[]) {
 		duration = stop - start;
 		cout << "done in " << duration.count() << " seconds" << endl;
 		cout << "Pitches detected:" << endl;
-		for (int i = 0; i < pitches.size(); i++)
+		for (unsigned int i = 0; i < pitches.size(); i++)
 			cout << pitches[i] << endl;
 	}
 
@@ -282,47 +283,59 @@ vector<complex<double>> parallelDiscreteFourierTransform(vector<double> input)
 
 vector<complex<double>> discreteFourierTransformTurkey(vector<double> input)
 {
-    //initiliaze sizes of samples
-    int N = input.size();
-    int K = input.size();
-
-    //init variable for internal loop
-    complex<double> innerSum;
-
-    //init vector of std::complex doubles for results
     vector<complex<double>> output;
 
-    //set output vector to have enough space
+	int high = ceil(log(input.size()) / log(2));
+	int pad = pow(2, high);
+
+	while ((int)input.size() < pad)
+		input.push_back(0.0);
+    
+	unsigned int N = input.size();
     output.reserve(N);
-    
-    for (int k = 0; k < K; k++)
-    {
-        innerSum = complex<double>(0,0);
-        for (int n = 0; n < N / 2 - 1; n++) {
-            // process real and imaginary parts of sum via definition in
-            // "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
-            double real = cos((2 * M_PI * k * 2 * n) / (N / 2));
-            double imag = sin((2 * M_PI * k * 2 * n) / (N / 2));
 
-            //store as std::complex double for multiplication
-            complex<double> w (real, -imag);
-            innerSum += input[n] * w;
-        }
-        for (int n = 1; n < N / 2 - 1; n++) {
-            // process real and imaginary parts of sum via definition in
-            // "https://en.wikipedia.org/wiki/Discrete_Fourier_transform"
-            double real = cos((2 * M_PI * k * 2 * n) / (N / 2));
-            double imag = sin((2 * M_PI * k * 2 * n) / (N / 2));
+	for (unsigned int i = 0; i < N; i++) {
+		int reversed = bitReverse(i, pad);
+		output.push_back(input[reversed]);
+	}
 
-            //store as std::complex double for multiplication
-            complex<double> w (real, -imag);
-            innerSum += input[n] * w;
-        }
-        //add value to the output vector
-        output.push_back(innerSum);
-    }
-    
+	cout << N << endl;
+
+	for (int s = 1; s <= pad; s++) {
+		cout << "s: " << s << endl;
+		int m = pow(2, s);
+		double real = cos((-2 * M_PI) / m);
+		double imag = -sin((-2 * M_PI) / m);
+		complex<double> wm;
+		wm.real(real);
+		wm.imag(imag);
+		for (int k = 0; k < pad; k++) {
+			cout << "k: " << k << endl;
+			complex<double> w;
+			w.real(1.0);
+			w.imag(0.0);
+			for (int j = 0; j < (m / 2) - 1; j++) {
+				cout << "j: " << j << endl;
+				complex<double> t = w * output[k + j + m / 2];
+				complex<double> u = output[k + j];
+				output[k + j] = u + t;
+				output[k + j + m / 2] = u - t;
+				w *= wm;
+			}
+		}
+	}
     return output;
+}
+
+unsigned int bitReverse(unsigned int num, int N)
+{
+	int n = 0;
+	for (int i = 0; i < N; i++) {
+		n <<= 1;
+		n |= (num & 1);
+		num >>= 1;
+	}
+	return n;
 }
 
 vector<float> floatGenerator(int vectorSize)
@@ -346,12 +359,6 @@ vector<float> floatGenerator(int vectorSize)
 vector<double> signalGenerator(int sampleSize)
 {
     double step = 1.0 / (double)sampleSize;
-	double amp = 1.0;
-    double freq = 1.0 / 440.0;
-	double period = (2.0 * (double)M_PI) / freq;
-    double horizontal = 0.0;
-    double vertical = 0.0;
-
 	double test = 0.00000000001;
 
     vector<double> output; //output vector to store the test signal
@@ -371,7 +378,7 @@ vector<double> signalGenerator(int sampleSize)
 vector<double> detectPitches(vector<complex<double>> output)
 {
 	vector<double> pitches;
-	for (int i = 0; i < output.size(); i++) {
+	for (int i = 0; i < (int)output.size(); i++) {
 		if (fabs(output[i].imag() > 500.0))
 			pitches.push_back(i);
 	}
