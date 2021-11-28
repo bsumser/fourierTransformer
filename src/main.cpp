@@ -127,6 +127,9 @@ void discreteCosineTransform(ImageLoader imageloader)
     int length = imageloader.image.size();
     int coeff = (2/length)^(0.5);
     for (int i = 0; i < length; i++) {
+        //For each pixel in image, apply the discrete cosine transform
+        //to access pixels use (int)imageloader.image[i]
+        //the image data is a 1d vector of char style pixels
 
     }
     //for (int i = 0; i < imageloader.image.size(); i+=4)
