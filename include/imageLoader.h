@@ -1,13 +1,13 @@
 #ifndef IMAGELOADER_H
 #define IMAGELOADER_H
 #include <string>
-#include <lodepng.h>
+#include "../include/lodepng.h"
 
 
 class ImageLoader
 {
     public:
-        ImageLoader(std::string path);
+        ImageLoader(const char* path);
     private:
         std::string path;
 };

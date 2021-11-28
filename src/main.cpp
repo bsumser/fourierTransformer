@@ -16,6 +16,7 @@
 #include <pthread.h>
 #include <omp.h>
 #include "../include/timelord.h"
+#include "../include/imageLoader.h"
 
 
 using namespace std::chrono;
@@ -39,6 +40,12 @@ int main(int argc, char* argv[]) {
     // Get N
     processArgs(argc, argv);
     cout << "N = " << n << endl;
+
+    //get path for image
+    char* path = argv[2];
+
+    //attempting to load image
+    ImageLoader imageLoader(path);
 
     // Init Variables
     high_resolution_clock::time_point start, stop;
@@ -92,7 +99,10 @@ void processArgs(int argc, char* argv[])
 {
     // TODO: Add a flag reader
     if (argc > 1) {
-	n = stoi(argv[1]);
+	//n = stoi(argv[1]);
+    for (int i = 0; i < argc; i++) {
+        std::cout << argv[i] << std::endl;
+    }
     }
 }
 
