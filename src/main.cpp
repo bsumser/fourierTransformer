@@ -124,15 +124,20 @@ void writeToFile(string file, vector<complex<double>> output)
 
 void discreteCosineTransform(ImageLoader imageloader)
 {
-    for (int i = 0; i < imageloader.image.size(); i+=4)
-    {
-        std::cout << "Pixel " << i << " is : " 
-        << "r:" << (int)imageloader.image[i] << " " 
-        << "g:" << (int)imageloader.image[i + 1] << " "
-        << "b:" << (int)imageloader.image[i + 2] << " "
-        << "a:" << (int)imageloader.image[i + 3] << " "
-        << std::endl;
+    int length = imageloader.image.size();
+    int coeff = (2/length)^(0.5);
+    for (int i = 0; i < length; i++) {
+
     }
+    //for (int i = 0; i < imageloader.image.size(); i+=4)
+    //{
+    //    std::cout << "Pixel " << i << " is : " 
+    //    << "r:" << (int)imageloader.image[i] << " " 
+    //    << "g:" << (int)imageloader.image[i + 1] << " "
+    //    << "b:" << (int)imageloader.image[i + 2] << " "
+    //    << "a:" << (int)imageloader.image[i + 3] << " "
+    //    << std::endl;
+    //}
 }
 
 vector<complex<double>> discreteFourierTransform(vector<complex<double>> input)
