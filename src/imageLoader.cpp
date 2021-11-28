@@ -23,5 +23,14 @@ ImageLoader::ImageLoader(const char* path)
         w = width;
         h = height;
         std::cout << "Success" << std::endl;
+        for (int i = 0; i < img.size(); i+=4)
+        {
+            std::cout << "Pixel " << i << " is : " 
+            << "r:" << (int)img[i] << " " 
+            << "g:" << (int)img[i + 1] << " "
+            << "b:" << (int)img[i + 2] << " "
+            << "a:" << (int)img[i + 3] << " "
+            << std::endl;
+        }
     }
 }
