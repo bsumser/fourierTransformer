@@ -8,8 +8,11 @@ class ImageLoader
 {
     public:
         ImageLoader(const char* path);
+        void grayscaler();
     private:
-        std::string path;
+        const char* path;
+        std::vector<unsigned char> image;
+        unsigned width, height;
 };
 
 #endif

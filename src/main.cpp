@@ -46,6 +46,7 @@ int main(int argc, char* argv[]) {
 
     //attempting to load image
     ImageLoader imageLoader(path);
+    imageLoader.grayscaler();
 
     // Init Variables
     high_resolution_clock::time_point start, stop;
