@@ -9,10 +9,10 @@ class ImageLoader
     public:
         ImageLoader(const char* path);
         void grayscaler();
-    private:
         const char* path;
         std::vector<unsigned char> image;
         unsigned width, height;
+    private:
 };
 
 #endif

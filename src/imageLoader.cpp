@@ -55,5 +55,4 @@ void ImageLoader::grayscaler()
 
     //if there's an error, display it
     if(error) std::cout << "encoder error " << error << ": "<< lodepng_error_text(error) << std::endl;
-
 }
