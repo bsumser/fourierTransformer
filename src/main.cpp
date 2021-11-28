@@ -26,6 +26,7 @@ using namespace std;
 vector<float> floatGenerator(int vectorSize);
 void processArgs(int argc, char* argv[]);
 void writeToFile(string file, vector<complex<double>> output);
+void discreteCosineTransform(ImageLoader imageloader);
 vector<complex<double>> discreteFourierTransform(vector<complex<double>> input);
 vector<complex<double>> parallelDiscreteFourierTransform(vector<complex<double>> input);
 vector<complex<double>> discreteFourierTransformTurkey(vector<complex<double>> input);
@@ -47,6 +48,7 @@ int main(int argc, char* argv[]) {
     //attempting to load image
     ImageLoader imageLoader(path);
     imageLoader.grayscaler();
+    discreteCosineTransform(imageLoader);
 
     // Init Variables
     high_resolution_clock::time_point start, stop;
@@ -118,6 +120,19 @@ void writeToFile(string file, vector<complex<double>> output)
 		f.close();
 		cout << "done" << endl << endl;
     #endif
+}
+
+void discreteCosineTransform(ImageLoader imageloader)
+{
+    for (int i = 0; i < imageloader.image.size(); i+=4)
+    {
+        std::cout << "Pixel " << i << " is : " 
+        << "r:" << (int)imageloader.image[i] << " " 
+        << "g:" << (int)imageloader.image[i + 1] << " "
+        << "b:" << (int)imageloader.image[i + 2] << " "
+        << "a:" << (int)imageloader.image[i + 3] << " "
+        << std::endl;
+    }
 }
 
 vector<complex<double>> discreteFourierTransform(vector<complex<double>> input)
