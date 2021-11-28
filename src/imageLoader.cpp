@@ -1,9 +1,7 @@
 #include "../include/imageLoader.h"
 #include <iostream>
 #include <string>
-#include <opencv2/core.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/highgui.hpp>
+#include <lodepng.h>
 
 
 ImageLoader::ImageLoader(std::string path)
