@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
     Timelord newTimeLord();
     duration<double> duration;
     vector<double> input;
-	vector<complex<double>> output;
+	vector<complex<double>> dftout, pdftout, dftctout;
 
 	if (wav) {
 		cout << "Reading " << inFile << ":" << endl;
@@ -89,37 +89,37 @@ int main(int argc, char* argv[]) {
     // DFT
     cout << "Starting DFT ... ";
     start = high_resolution_clock::now();
-    output = discreteFourierTransform(input);
+    dftout = discreteFourierTransform(input);
     stop = high_resolution_clock::now();
     duration = stop - start;
     cout << "done in " << duration.count() << " seconds" << endl;
-    writeToFile("dft.txt", output);
+    writeToFile("dft.txt", dftout);
 
 
-    // DFTF
+    // PDFT
     cout << "Starting // DFT ... ";
     start = high_resolution_clock::now();
-    output = parallelDiscreteFourierTransform(input);
+    pdftout = parallelDiscreteFourierTransform(input);
     stop = high_resolution_clock::now();
     duration = stop - start;
     cout << "done in " << duration.count() << " seconds" << endl;
-    writeToFile("pdft.txt", output);
+    writeToFile("pdft.txt", pdftout);
 
 
     //DFTCT
     cout << "Starting DFT Cooley-Turkey ... ";
     start = high_resolution_clock::now();
-    output = discreteFourierTransformTurkey(input);
+    dftctout = discreteFourierTransformTurkey(input);
     stop = high_resolution_clock::now();
     duration = stop - start;
     cout << "done in " << duration.count() << " seconds" << endl;
-    writeToFile("ct.txt", output);
+    writeToFile("ct.txt", dftctout);
    
 	if (wav) {
 		// Pitch Detection
 		cout << "Detecting Pitches ... ";
 		start = high_resolution_clock::now();
-		vector<double> pitches = detectPitches(output);
+		vector<double> pitches = detectPitches(dftout);
 		stop = high_resolution_clock::now();
 		duration = stop - start;
 		cout << "done in " << duration.count() << " seconds" << endl;
@@ -158,6 +158,10 @@ int processArgs(int argc, char* argv[])
 			case '?':
 				return 1;
 		}
+	}
+	if (wav && image) {
+		cout << "I can't do both an image and a wav file... sorry" << endl;
+		return 1;
 	}
 	return 0;
 }
@@ -299,23 +303,21 @@ vector<complex<double>> discreteFourierTransformTurkey(vector<double> input)
 		output.push_back(input[reversed]);
 	}
 
-	cout << N << endl;
+	// maybe ceil
+	int top = floor(log(N));
 
-	for (int s = 1; s <= pad; s++) {
-		cout << "s: " << s << endl;
+	for (int s = 1; s <= top; s++) {
 		int m = pow(2, s);
 		double real = cos((-2 * M_PI) / m);
 		double imag = -sin((-2 * M_PI) / m);
 		complex<double> wm;
 		wm.real(real);
 		wm.imag(imag);
-		for (int k = 0; k < pad; k++) {
-			cout << "k: " << k << endl;
+		for (int k = 0; k < pad; k += m) {
 			complex<double> w;
 			w.real(1.0);
 			w.imag(0.0);
-			for (int j = 0; j < (m / 2) - 1; j++) {
-				cout << "j: " << j << endl;
+			for (int j = 0; j < (m / 2); j++) {
 				complex<double> t = w * output[k + j + m / 2];
 				complex<double> u = output[k + j];
 				output[k + j] = u + t;
