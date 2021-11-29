@@ -11,7 +11,7 @@
 
 * Compile with "make" and run with "./main". Object files can be removed with "make clean".
 * Dependencies
-OpenCV is required for image processing. Here is a link from StackOverflow on [installation](https://stackoverflow.com/questions/65738296/how-to-run-a-simple-opencv-code-in-c-on-linux).
+The LodePNG library is required for image manipulation. It is provided in the repo, but if there is any issue with the files you can download it at [LodePNG](https://lodev.org/lodepng/).
 * Launch options
 
 ### Contribution guidelines ###
@@ -24,3 +24,6 @@ OpenCV is required for image processing. Here is a link from StackOverflow on [i
 
 * [Brett Sumser](https://github.com/bsumser)
 * [Justin Spidell](mailto:jspidell@uoregon.edu)
+
+### Thanks ###
+Thanks to the author of [LodePNG](https://lodev.org/lodepng/), for writing a fairly simple to use png loading library.
