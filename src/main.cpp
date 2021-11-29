@@ -18,6 +18,7 @@
 #include <omp.h>
 #include "../include/timelord.h"
 #include "../include/wavio.h"
+#include "../include/imageLoader.h"
 
 
 using namespace std::chrono;
@@ -48,6 +49,14 @@ string inFile = "wavs/a.wav";
 int main(int argc, char* argv[]) {
     if (processArgs(argc, argv))
 		return 1;
+
+    //get path for image
+    char* path = argv[2];
+
+    //attempting to load image
+    ImageLoader imageLoader(path);
+    imageLoader.grayscaler();
+    discreteCosineTransform(imageLoader);
 
     // Init Variables
     high_resolution_clock::time_point start, stop;
@@ -194,6 +203,27 @@ void writeVectorToFile(string file, vector<double> vec)
 		f.close();
 		cout << "done" << endl << endl;
     #endif
+}
+
+void discreteCosineTransform(ImageLoader imageloader)
+{
+    int length = imageloader.image.size();
+    int coeff = (2/length)^(0.5);
+    for (int i = 0; i < length; i++) {
+        //For each pixel in image, apply the discrete cosine transform
+        //to access pixels use (int)imageloader.image[i]
+        //the image data is a 1d vector of char style pixels
+
+    }
+    //for (int i = 0; i < imageloader.image.size(); i+=4)
+    //{
+    //    std::cout << "Pixel " << i << " is : " 
+    //    << "r:" << (int)imageloader.image[i] << " " 
+    //    << "g:" << (int)imageloader.image[i + 1] << " "
+    //    << "b:" << (int)imageloader.image[i + 2] << " "
+    //    << "a:" << (int)imageloader.image[i + 3] << " "
+    //    << std::endl;
+    //}
 }
 
 vector<complex<double>> discreteFourierTransform(vector<double> input)
