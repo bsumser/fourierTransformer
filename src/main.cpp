@@ -113,12 +113,12 @@ int main(int argc, char* argv[]) {
     // DFT
     cout << "Starting DFT ... ";
     start = high_resolution_clock::now();
-    dftout = DFT(input);
+    //dftout = DFT(input);
     stop = high_resolution_clock::now();
     duration = stop - start;
     cout << "done in " << duration.count() << " seconds" << endl;
-	durations.push_back(duration.count());
-    writeToFile("dft.txt", dftout);
+	//durations.push_back(duration.count());
+    //writeToFile("dft.txt", dftout);
 
 
     // DFTP1

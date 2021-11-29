@@ -20,5 +20,5 @@
 
 export OMP_NUM_THREADS=28
 
-./main -n 1048576
+./main -n 131072
 

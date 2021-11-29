@@ -1,0 +1,22 @@
+N = 131072
+
+Generating signal ... done in 0.0108555 seconds
+Writing to file ... done
+
+Setting up locks ... done in 0.00120642 seconds
+
+Starting DFT ... done in 9.94e-07 seconds
+Starting // DFT ... done in 60.4222 seconds
+Writing to file ... done
+
+Starting Cooley-Turkey ... done in 0.14108 seconds
+Writing to file ... done
+
+Starting V1 // Cooley-Turkey ... done in 2.32468 seconds
+Writing to file ... done
+
+Starting V2 // Cooley-Turkey ... done in 1.31673 seconds
+Writing to file ... done
+
+Writing to file ... done
+
