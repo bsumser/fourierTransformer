@@ -27,9 +27,9 @@ using namespace std;
 
 int processArgs(int argc, char* argv[]);
 void writeToFile(string file, vector<complex<double>> output);
-void writeVectorToFile(string file, vector<double> output);
-vector<complex<double>> discreteFourierTransform(vector<double> input);
-vector<complex<double>> parallelDiscreteFourierTransform(vector<double> input);
+void writeVectorToFile(string file, vector<double> output, int N);
+vector<complex<double>> DFT(vector<double> input);
+vector<complex<double>> PDFT(vector<double> input);
 vector<complex<double>> CT(vector<double> input);
 vector<complex<double>> CTP1(vector<double> input);
 vector<complex<double>> CTP2(vector<double> input);
@@ -57,8 +57,9 @@ int main(int argc, char* argv[]) {
     high_resolution_clock::time_point start, stop;
     Timelord newTimeLord();
     duration<double> duration;
+	vector<double> durations;
     vector<double> input;
-	vector<complex<double>> dftout, pdftout, dftctout, ctout, ctp1out, ctp2out;
+	vector<complex<double>> dftout, pdftout, ctout, ctp1out, ctp2out;
 
 	if (wav) {
 		cout << "Reading " << inFile << ":" << endl;
@@ -66,8 +67,9 @@ int main(int argc, char* argv[]) {
 		input = read_wav(inFile.c_str());
 		stop = high_resolution_clock::now();
 		cout << "done in " << duration.count() << " seconds" << endl;
+		durations.push_back(duration.count());
 		n = input.size();
-		writeVectorToFile("sig.txt", input);
+		writeVectorToFile("sig.txt", input, n);
 	}
 
 	if (image) {
@@ -79,6 +81,7 @@ int main(int argc, char* argv[]) {
 		discreteCosineTransform(imageLoader);
 		stop = high_resolution_clock::now();
 		cout << "done in " << duration.count() << " seconds" << endl;
+		durations.push_back(duration.count());
 		n = input.size();
 	}
 
@@ -91,28 +94,41 @@ int main(int argc, char* argv[]) {
 	    input = signalGenerator(n);
 	    stop = high_resolution_clock::now();
 	    duration = stop - start;
-	    cout << "done in " << duration.count() << " seconds" << endl << endl;
-		writeVectorToFile("sig.txt", input);
+	    cout << "done in " << duration.count() << " seconds" << endl;
+		durations.push_back(duration.count());
+		writeVectorToFile("sig.txt", input, n);
 	}
 
+	// Locks
+	cout << "Setting up locks ... ";
+    start = high_resolution_clock::now();
+	locks.reserve(n);
+	for (int i = 0; i < n; i++)
+		omp_init_lock(&(locks[i]));
+    stop = high_resolution_clock::now();
+	duration = stop - start;
+	cout << "done in " << duration.count() << " seconds" << endl << endl;;
+	durations.push_back(duration.count());
 
     // DFT
     cout << "Starting DFT ... ";
     start = high_resolution_clock::now();
-    dftout = discreteFourierTransform(input);
+    dftout = DFT(input);
     stop = high_resolution_clock::now();
     duration = stop - start;
     cout << "done in " << duration.count() << " seconds" << endl;
+	durations.push_back(duration.count());
     writeToFile("dft.txt", dftout);
 
 
-    // PDFT
+    // DFTP1
     cout << "Starting // DFT ... ";
     start = high_resolution_clock::now();
-    pdftout = parallelDiscreteFourierTransform(input);
+    pdftout = PDFT(input);
     stop = high_resolution_clock::now();
     duration = stop - start;
     cout << "done in " << duration.count() << " seconds" << endl;
+	durations.push_back(duration.count());
     writeToFile("pdft.txt", pdftout);
 
 
@@ -123,6 +139,7 @@ int main(int argc, char* argv[]) {
     stop = high_resolution_clock::now();
     duration = stop - start;
     cout << "done in " << duration.count() << " seconds" << endl;
+	durations.push_back(duration.count());
 	writeToFile("ct.txt", ctout);
 
 
@@ -133,25 +150,18 @@ int main(int argc, char* argv[]) {
     stop = high_resolution_clock::now();
     duration = stop - start;
     cout << "done in " << duration.count() << " seconds" << endl;
+	durations.push_back(duration.count());
 	writeToFile("ctp1.txt", ctp1out);
 
 	
     //CTP2
-	cout << "Setting up locks ... ";
-    start = high_resolution_clock::now();
-	locks.reserve(n);
-	for (int i = 0; i < n; i++)
-		omp_init_lock(&(locks[i]));
-    stop = high_resolution_clock::now();
-	duration = stop - start;
-	cout << "done in " << duration.count() << " seconds" << endl;
-    
 	cout << "Starting V2 // Cooley-Turkey ... ";
     start = high_resolution_clock::now();
     ctp2out = CTP2(input);
     stop = high_resolution_clock::now();
     duration = stop - start;
     cout << "done in " << duration.count() << " seconds" << endl;
+	durations.push_back(duration.count());
 	if (!err)
 		writeToFile("ctp2.txt", ctp2out);
 
@@ -167,11 +177,14 @@ int main(int argc, char* argv[]) {
 		stop = high_resolution_clock::now();
 		duration = stop - start;
 		cout << "done in " << duration.count() << " seconds" << endl;
+		durations.push_back(duration.count());
 		cout << "Pitches detected:" << endl;
 		for (unsigned int i = 0; i < pitches.size(); i++)
 			cout << pitches[i] << endl;
+		cout << endl;
 	}
 
+	writeVectorToFile("dur.txt", durations, (int)durations.size());
 
 	return 0;
 }
@@ -223,13 +236,13 @@ void writeToFile(string file, vector<complex<double>> vec)
     #endif
 }
 
-void writeVectorToFile(string file, vector<double> vec)
+void writeVectorToFile(string file, vector<double> vec, int N)
 {
     #ifdef PRINT
 		cout << "Writing to file ... ";
 		ofstream f;
 		f.open("out/" + file, ios::trunc);
-		for (int i = 0 ; i < n; i++)
+		for (int i = 0 ; i < N; i++)
 			f << vec[i] << endl;
 		f.close();
 		cout << "done" << endl << endl;
@@ -258,7 +271,7 @@ void discreteCosineTransform(ImageLoader imageloader)
     //}
 }
 
-vector<complex<double>> discreteFourierTransform(vector<double> input)
+vector<complex<double>> DFT(vector<double> input)
 {
     //initialize sizes of samples
     int N = input.size();
@@ -304,7 +317,7 @@ vector<complex<double>> discreteFourierTransform(vector<double> input)
     return output;
 }
 
-vector<complex<double>> parallelDiscreteFourierTransform(vector<double> input)
+vector<complex<double>> PDFT(vector<double> input)
 {
     //initiliaze sizes of samples
     int N = input.size();
@@ -344,7 +357,6 @@ vector<complex<double>> parallelDiscreteFourierTransform(vector<double> input)
 			innerSum.real(0.0);
 		if (fabs(innerSum.imag()) < test)
 			innerSum.imag(0.0);
-		#pragma omp critical
 		output.at(k) = innerSum;
 	}
 
