@@ -33,15 +33,16 @@ vector<complex<double>> parallelDiscreteFourierTransform(vector<double> input);
 vector<complex<double>> discreteFourierTransformTurkey(vector<double> input);
 vector<double> signalGenerator(int sampleSize);
 vector<double> detectPitches(vector<complex<double>> output);
-unsigned int bitReverse(unsigned int input, int n);
+unsigned int bitReverse(unsigned int input, int log2n);
 
 
-int n = 1000;
+int n = 1024;
 double test = 0.000000001;
 bool wav = false;
 bool image = false;
 bool num = false;
-const char* inFile = "wavs/a.wav";
+bool err = false;
+string inFile = "wavs/a.wav";
 
 
 int main(int argc, char* argv[]) {
@@ -58,7 +59,7 @@ int main(int argc, char* argv[]) {
 	if (wav) {
 		cout << "Reading " << inFile << ":" << endl;
 		start = high_resolution_clock::now();
-		input = read_wav(inFile);
+		input = read_wav(inFile.c_str());
 		stop = high_resolution_clock::now();
 		cout << "done in " << duration.count() << " seconds" << endl;
 		n = input.size();
@@ -113,8 +114,11 @@ int main(int argc, char* argv[]) {
     stop = high_resolution_clock::now();
     duration = stop - start;
     cout << "done in " << duration.count() << " seconds" << endl;
-    writeToFile("ct.txt", dftctout);
-   
+    if (!err)
+		writeToFile("ct.txt", dftctout);
+	else
+		cout << endl;
+
 	if (wav) {
 		// Pitch Detection
 		cout << "Detecting Pitches ... ";
@@ -289,55 +293,74 @@ vector<complex<double>> discreteFourierTransformTurkey(vector<double> input)
 {
     vector<complex<double>> output;
 
-	int high = ceil(log(input.size()) / log(2));
-	int pad = pow(2, high);
-
-	while ((int)input.size() < pad)
-		input.push_back(0.0);
+	int high = log(input.size()) / log(2);
     
-	unsigned int N = input.size();
-    output.reserve(N);
+	double tmp = log(input.size()) / log(2);
 
-	for (unsigned int i = 0; i < N; i++) {
-		int reversed = bitReverse(i, pad);
-		output.push_back(input[reversed]);
+	if (high != tmp) {
+		cout << endl << "This algorithm only works with power of 2 sized arrays!" << endl;
+		err = true;
+		return output;
 	}
 
-	// maybe ceil
-	int top = floor(log(N));
+	unsigned int N = (unsigned int)input.size();
+    output.reserve(N);
 
-	for (int s = 1; s <= top; s++) {
-		int m = pow(2, s);
-		double real = cos((-2 * M_PI) / m);
-		double imag = -sin((-2 * M_PI) / m);
-		complex<double> wm;
-		wm.real(real);
-		wm.imag(imag);
-		for (int k = 0; k < pad; k += m) {
-			complex<double> w;
-			w.real(1.0);
-			w.imag(0.0);
-			for (int j = 0; j < (m / 2); j++) {
-				complex<double> t = w * output[k + j + m / 2];
-				complex<double> u = output[k + j];
-				output[k + j] = u + t;
-				output[k + j + m / 2] = u - t;
-				w *= wm;
+	int n = input.size();
+
+	for (unsigned int i = 0; i < N; ++i) {
+		unsigned int reversed = bitReverse(i, high);
+		complex<double> tmp;
+		tmp.real(input[reversed]);
+		tmp.imag(0.0);
+		output.push_back(tmp);
+	}
+
+	const complex<double> iota (0, 1);
+	for (int s = 1; s <= high; ++s) {
+		int m = 1 << s;
+		int m2 = m >> 1;
+		complex<double> w (1.0, 0.0);
+		//complex<double> wm = exp(iota * (M_PI / m2));
+		double real = cos(M_PI / m2);
+		double imag = -sin(M_PI / m2);
+		complex<double> wm (real, imag);
+		if (fabs(wm.real()) < test)
+			wm.real(0.0);
+		if (fabs(wm.imag()) < test)
+			wm.imag(0.0);
+		for (int j = 0; j < m2; ++j) {
+			for (int k = j; k < n; k += m) {
+				complex<double> t = (w * output[k + m2]);		
+				complex<double> u = output[k];
+				output[k] = u + t;
+				output[k + m2] = u - t;
+				if (fabs(output[k].real()) < test)
+					output[k].real(0.0);
+				if (fabs(output[k].imag()) < test)
+					output[k].imag(0.0);
+				if (fabs(output[k+m2].real()) < test)
+					output[k+m2].real(0.0);
+				if (fabs(output[k+m2].imag()) < test)
+					output[k+m2].imag(0.0);
 			}
+			w *= wm;
 		}
 	}
     return output;
 }
 
-unsigned int bitReverse(unsigned int num, int N)
+unsigned int bitReverse(unsigned int num, int log2n)
 {
-	int n = 0;
-	for (int i = 0; i < N; i++) {
-		n <<= 1;
-		n |= (num & 1);
+	unsigned int rev = 0;
+
+	for (int i = 0; i < log2n; i++) {
+		rev <<= 1;
+		rev |= (num & 1);
 		num >>= 1;
 	}
-	return n;
+
+	return rev;
 }
 
 vector<float> floatGenerator(int vectorSize)
@@ -380,8 +403,8 @@ vector<double> signalGenerator(int sampleSize)
 vector<double> detectPitches(vector<complex<double>> output)
 {
 	vector<double> pitches;
-	for (int i = 0; i < (int)output.size(); i++) {
-		if (fabs(output[i].imag() > 500.0))
+	for (int i = 0; i < (int)output.size() / 2; i++) {
+		if (fabs(output[i].imag()) > 700.0)
 			pitches.push_back(i);
 	}
 	return pitches;
