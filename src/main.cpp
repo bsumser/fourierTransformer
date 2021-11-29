@@ -25,7 +25,6 @@ using namespace std::chrono;
 using namespace std;
 
 
-vector<float> floatGenerator(int vectorSize);
 int processArgs(int argc, char* argv[]);
 void writeToFile(string file, vector<complex<double>> output);
 void writeVectorToFile(string file, vector<double> output);
@@ -35,6 +34,7 @@ vector<complex<double>> discreteFourierTransformTurkey(vector<double> input);
 vector<double> signalGenerator(int sampleSize);
 vector<double> detectPitches(vector<complex<double>> output);
 unsigned int bitReverse(unsigned int input, int log2n);
+void discreteCosineTransform(ImageLoader imageloader);
 
 
 int n = 1024;
@@ -50,20 +50,12 @@ int main(int argc, char* argv[]) {
     if (processArgs(argc, argv))
 		return 1;
 
-    //get path for image
-    char* path = argv[2];
-
-    //attempting to load image
-    ImageLoader imageLoader(path);
-    imageLoader.grayscaler();
-    discreteCosineTransform(imageLoader);
-
     // Init Variables
     high_resolution_clock::time_point start, stop;
     Timelord newTimeLord();
     duration<double> duration;
     vector<double> input;
-	vector<complex<double>> dftout, pdftout, dftctout;
+	vector<complex<double>> dftout, pdftout, dftctout, dctout;
 
 	if (wav) {
 		cout << "Reading " << inFile << ":" << endl;
@@ -77,7 +69,11 @@ int main(int argc, char* argv[]) {
 
 	if (image) {
 		cout << "Looking at " << inFile << " ... ";
+		//attempting to load image
+		ImageLoader imageLoader(inFile.c_str());
+		imageLoader.grayscaler();
 		start = high_resolution_clock::now();
+		discreteCosineTransform(imageLoader);
 		stop = high_resolution_clock::now();
 		cout << "done in " << duration.count() << " seconds" << endl;
 		n = input.size();
@@ -208,7 +204,8 @@ void writeVectorToFile(string file, vector<double> vec)
 void discreteCosineTransform(ImageLoader imageloader)
 {
     int length = imageloader.image.size();
-    int coeff = (2/length)^(0.5);
+    // pow? org: (2/length)^(0.5)
+	//int coeff = pow((2 / length), (0.5));
     for (int i = 0; i < length; i++) {
         //For each pixel in image, apply the discrete cosine transform
         //to access pixels use (int)imageloader.image[i]
@@ -336,7 +333,7 @@ vector<complex<double>> discreteFourierTransformTurkey(vector<double> input)
 	unsigned int N = (unsigned int)input.size();
     output.reserve(N);
 
-	int n = input.size();
+	int top = input.size();
 
 	for (unsigned int i = 0; i < N; ++i) {
 		unsigned int reversed = bitReverse(i, high);
@@ -351,7 +348,6 @@ vector<complex<double>> discreteFourierTransformTurkey(vector<double> input)
 		int m = 1 << s;
 		int m2 = m >> 1;
 		complex<double> w (1.0, 0.0);
-		//complex<double> wm = exp(iota * (M_PI / m2));
 		double real = cos(M_PI / m2);
 		double imag = -sin(M_PI / m2);
 		complex<double> wm (real, imag);
@@ -360,9 +356,14 @@ vector<complex<double>> discreteFourierTransformTurkey(vector<double> input)
 		if (fabs(wm.imag()) < test)
 			wm.imag(0.0);
 		for (int j = 0; j < m2; ++j) {
-			for (int k = j; k < n; k += m) {
-				complex<double> t = (w * output[k + m2]);		
-				complex<double> u = output[k];
+			complex<double> t, u;
+			int k;
+			// #pragma omp parallel for default(none) shared(j, output, test, top, m, m2, w) private(t, u, k)	
+			for (k = j; k < top; k += m) {
+				t = (w * output[k + m2]);
+				u = output[k];
+				// #pragma omp critical
+				{
 				output[k] = u + t;
 				output[k + m2] = u - t;
 				if (fabs(output[k].real()) < test)
@@ -373,6 +374,7 @@ vector<complex<double>> discreteFourierTransformTurkey(vector<double> input)
 					output[k+m2].real(0.0);
 				if (fabs(output[k+m2].imag()) < test)
 					output[k+m2].imag(0.0);
+				}
 			}
 			w *= wm;
 		}
@@ -393,38 +395,22 @@ unsigned int bitReverse(unsigned int num, int log2n)
 	return rev;
 }
 
-vector<float> floatGenerator(int vectorSize)
-{
-    //initialize stuff fo random float generator
-    default_random_engine floatGenerator;
-    mt19937 mt(floatGenerator());
-    uniform_real_distribution<float> uniform_distance(0, 10.001);
-    
-    //float vector to return
-    vector<float> floatVector;
-
-    //#pragma omp parallel for 
-    for (int i = 0; i < vectorSize - 1; i++) {
-        floatVector.push_back(uniform_distance(mt));
-        //cout << "rand is " << uniform_distance(mt) << endl;
-    }
-    return floatVector;
-}
-
 vector<double> signalGenerator(int sampleSize)
 {
-    double step = 1.0 / (double)sampleSize;
 	double test = 0.00000000001;
 
     vector<double> output; //output vector to store the test signal
-    output.reserve(sampleSize);  //allocate proper size for vector
+    output.resize(sampleSize);  //allocate proper size for vector
 
-    //#pragma omp parallel for
-    for (double i = 0.0; i < (double)1.0; i += step) {
-		double tmp = sin((double)880.0 * (double)M_PI * i);
+	double tmp;
+	int i;
+
+    #pragma omp parallel for default(none) shared(test, output, sampleSize) private(i, tmp)
+    for (i = 0; i < sampleSize; i++) {
+		tmp = sin(880.0 * M_PI * (double)((double)i / (double)sampleSize));
 		if (fabs(tmp) < test) 
 			tmp = 0.0;
-        output.push_back(tmp);
+        output.at(i) = tmp;
     }
     
     return output;
@@ -439,3 +425,4 @@ vector<double> detectPitches(vector<complex<double>> output)
 	}
 	return pitches;
 }
+
