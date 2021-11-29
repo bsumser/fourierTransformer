@@ -4,7 +4,7 @@ import numpy as np
 
 
 def plotFreq():
-    lines = open("../out/pdft.txt").readlines()
+    lines = open("../out/ctp2.txt").readlines()
     imag = []
     for i in range(len(lines)):
         split = lines[i].split(", ")

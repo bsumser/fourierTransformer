@@ -30,7 +30,9 @@ void writeToFile(string file, vector<complex<double>> output);
 void writeVectorToFile(string file, vector<double> output);
 vector<complex<double>> discreteFourierTransform(vector<double> input);
 vector<complex<double>> parallelDiscreteFourierTransform(vector<double> input);
-vector<complex<double>> discreteFourierTransformTurkey(vector<double> input);
+vector<complex<double>> CT(vector<double> input);
+vector<complex<double>> CTP1(vector<double> input);
+vector<complex<double>> CTP2(vector<double> input);
 vector<double> signalGenerator(int sampleSize);
 vector<double> detectPitches(vector<complex<double>> output);
 unsigned int bitReverse(unsigned int input, int log2n);
@@ -44,6 +46,7 @@ bool image = false;
 bool num = false;
 bool err = false;
 string inFile = "wavs/a.wav";
+vector<omp_lock_t> locks;
 
 
 int main(int argc, char* argv[]) {
@@ -55,7 +58,7 @@ int main(int argc, char* argv[]) {
     Timelord newTimeLord();
     duration<double> duration;
     vector<double> input;
-	vector<complex<double>> dftout, pdftout, dftctout, dctout;
+	vector<complex<double>> dftout, pdftout, dftctout, ctout, ctp1out, ctp2out;
 
 	if (wav) {
 		cout << "Reading " << inFile << ":" << endl;
@@ -79,8 +82,8 @@ int main(int argc, char* argv[]) {
 		n = input.size();
 	}
 
-	cout << "N = " << n << endl;	
-	
+	cout << "N = " << n << endl << endl;
+
 	if (!wav && !image) {
 	    // Signal Generator
 		cout << "Generating signal ... ";
@@ -91,6 +94,7 @@ int main(int argc, char* argv[]) {
 	    cout << "done in " << duration.count() << " seconds" << endl << endl;
 		writeVectorToFile("sig.txt", input);
 	}
+
 
     // DFT
     cout << "Starting DFT ... ";
@@ -112,17 +116,48 @@ int main(int argc, char* argv[]) {
     writeToFile("pdft.txt", pdftout);
 
 
-    //DFTCT
-    cout << "Starting DFT Cooley-Turkey ... ";
+    //CT
+    cout << "Starting Cooley-Turkey ... ";
     start = high_resolution_clock::now();
-    dftctout = discreteFourierTransformTurkey(input);
+    ctout = CT(input);
     stop = high_resolution_clock::now();
     duration = stop - start;
     cout << "done in " << duration.count() << " seconds" << endl;
-    if (!err)
-		writeToFile("ct.txt", dftctout);
-	else
-		cout << endl;
+	writeToFile("ct.txt", ctout);
+
+
+    //CTP1
+    cout << "Starting V1 // Cooley-Turkey ... ";
+    start = high_resolution_clock::now();
+    ctp1out = CTP1(input);
+    stop = high_resolution_clock::now();
+    duration = stop - start;
+    cout << "done in " << duration.count() << " seconds" << endl;
+	writeToFile("ctp1.txt", ctp1out);
+
+	
+    //CTP2
+	cout << "Setting up locks ... ";
+    start = high_resolution_clock::now();
+	locks.reserve(n);
+	for (int i = 0; i < n; i++)
+		omp_init_lock(&(locks[i]));
+    stop = high_resolution_clock::now();
+	duration = stop - start;
+	cout << "done in " << duration.count() << " seconds" << endl;
+    
+	cout << "Starting V2 // Cooley-Turkey ... ";
+    start = high_resolution_clock::now();
+    ctp2out = CTP2(input);
+    stop = high_resolution_clock::now();
+    duration = stop - start;
+    cout << "done in " << duration.count() << " seconds" << endl;
+	if (!err)
+		writeToFile("ctp2.txt", ctp2out);
+
+	for (int i = 0; i < n; i++)
+		omp_destroy_lock(&(locks[i]));
+
 
 	if (wav) {
 		// Pitch Detection
@@ -293,7 +328,7 @@ vector<complex<double>> parallelDiscreteFourierTransform(vector<double> input)
 	double real = 0.0;
 	double imag = 0.0;
 
-	#pragma omp parallel for default(none) private(real, imag, innerSum, k, tmp, n) shared(input, output, K, N, cout, test)
+	#pragma omp parallel for default(none) private(real, imag, innerSum, k, tmp, n) shared(input, output, K, N, test)
 	for (k = 0; k < K; k++) {
 		innerSum = complex<double>(0.0,0.0);	
 		for (n = 0; n < N; n++) {
@@ -316,19 +351,16 @@ vector<complex<double>> parallelDiscreteFourierTransform(vector<double> input)
     return output;
 }
 
-vector<complex<double>> discreteFourierTransformTurkey(vector<double> input)
+vector<complex<double>> CT(vector<double> input)
 {
     vector<complex<double>> output;
 
-	int high = log(input.size()) / log(2);
-    
-	double tmp = log(input.size()) / log(2);
-
-	if (high != tmp) {
-		cout << endl << "This algorithm only works with power of 2 sized arrays!" << endl;
-		err = true;
-		return output;
-	}
+	int high = ceil(log(input.size()) / log(2));
+	uint32_t pad = pow(2, high) - input.size();
+	vector<double>::iterator it = input.begin();
+	int half = floor(input.size() / 2);
+	
+	input.insert(it + half, pad, (double)0.0);
 
 	unsigned int N = (unsigned int)input.size();
     output.reserve(N);
@@ -356,25 +388,158 @@ vector<complex<double>> discreteFourierTransformTurkey(vector<double> input)
 		if (fabs(wm.imag()) < test)
 			wm.imag(0.0);
 		for (int j = 0; j < m2; ++j) {
-			complex<double> t, u;
+			complex<double> t, u, tmpk, tmpm;
 			int k;
-			// #pragma omp parallel for default(none) shared(j, output, test, top, m, m2, w) private(t, u, k)	
 			for (k = j; k < top; k += m) {
 				t = (w * output[k + m2]);
 				u = output[k];
-				// #pragma omp critical
+				tmpk = u + t;
+				tmpm = u - t;
+				if (fabs(tmpk.real()) < test)
+					tmpk.real(0.0);
+				if (fabs(tmpk.imag()) < test)
+					tmpk.imag(0.0);
+				if (fabs(tmpm.real()) < test)
+					tmpm.real(0.0);
+				if (fabs(tmpm.imag()) < test)
+					tmpm.imag(0.0);
+				output[k] = tmpk;
+				output[k + m2] = tmpm;
+			}
+			w *= wm;
+		}
+	}
+    return output;
+}
+
+vector<complex<double>> CTP1(vector<double> input)
+{
+    vector<complex<double>> output;
+
+	int high = ceil(log(input.size()) / log(2));
+	uint32_t pad = pow(2, high) - input.size();
+	vector<double>::iterator it = input.begin();
+	int half = floor(input.size() / 2);
+	
+	input.insert(it + half, pad, (double)0.0);
+
+	unsigned int N = (unsigned int)input.size();
+    output.reserve(N);
+
+	int top = input.size();
+
+	for (unsigned int i = 0; i < N; ++i) {
+		unsigned int reversed = bitReverse(i, high);
+		complex<double> tmp;
+		tmp.real(input[reversed]);
+		tmp.imag(0.0);
+		output.push_back(tmp);
+	}
+
+	const complex<double> iota (0, 1);
+	for (int s = 1; s <= high; ++s) {
+		int m = 1 << s;
+		int m2 = m >> 1;
+		complex<double> w (1.0, 0.0);
+		double real = cos(M_PI / m2);
+		double imag = -sin(M_PI / m2);
+		complex<double> wm (real, imag);
+		if (fabs(wm.real()) < test)
+			wm.real(0.0);
+		if (fabs(wm.imag()) < test)
+			wm.imag(0.0);
+		for (int j = 0; j < m2; ++j) {
+			complex<double> t, u, tmpk, tmpm;
+			int k;
+			#pragma omp parallel for default(none) shared(j, output, test, top, m, m2, w) private(t, u, k, tmpk, tmpm)
+			for (k = j; k < top; k += m) {
+				t = (w * output[k + m2]);
+				u = output[k];
+				tmpk = u + t;
+				tmpm = u - t;
+				if (fabs(tmpk.real()) < test)
+					tmpk.real(0.0);
+				if (fabs(tmpk.imag()) < test)
+					tmpk.imag(0.0);
+				if (fabs(tmpm.real()) < test)
+					tmpm.real(0.0);
+				if (fabs(tmpm.imag()) < test)
+					tmpm.imag(0.0);
+				#pragma omp critical
 				{
-				output[k] = u + t;
-				output[k + m2] = u - t;
-				if (fabs(output[k].real()) < test)
-					output[k].real(0.0);
-				if (fabs(output[k].imag()) < test)
-					output[k].imag(0.0);
-				if (fabs(output[k+m2].real()) < test)
-					output[k+m2].real(0.0);
-				if (fabs(output[k+m2].imag()) < test)
-					output[k+m2].imag(0.0);
+					output[k] = tmpk;
+					output[k + m2] = tmpm;
 				}
+			}
+			w *= wm;
+		}
+	}
+    return output;
+}
+
+vector<complex<double>> CTP2(vector<double> input)
+{
+    vector<complex<double>> output;
+
+	int org = input.size();
+	int high = log(org) / log(2);
+
+	if (pow(2, high) != input.size()) {
+		cout << "CTP2 only takes power of 2 inputs .... sorry!" << endl;
+		err = true;
+		return output;
+	}
+
+	unsigned int N = (unsigned int)input.size();
+    output.reserve(N);
+
+	int top = input.size();
+
+
+	for (unsigned int i = 0; i < N; ++i) {
+		unsigned int reversed = bitReverse(i, high);
+		complex<double> tmp;
+		tmp.real(input[reversed]);
+		tmp.imag(0.0);
+		output.push_back(tmp);
+	}
+
+
+	const complex<double> iota (0, 1);
+	for (int s = 1; s <= high; ++s) {
+		int m = 1 << s;
+		int m2 = m >> 1;
+		complex<double> w (1.0, 0.0);
+		double real = cos(M_PI / m2);
+		double imag = -sin(M_PI / m2);
+		complex<double> wm (real, imag);
+		if (fabs(wm.real()) < test)
+			wm.real(0.0);
+		if (fabs(wm.imag()) < test)
+			wm.imag(0.0);
+		for (int j = 0; j < m2; ++j) {
+			complex<double> t, u, tmpk, tmpm;
+			int k;
+			#pragma omp parallel for default(none) shared(j, output, test, top, m, m2, w, locks) private(t, u, k, tmpk, tmpm)
+			for (k = j; k < top; k += m) {
+				t = (w * output[k + m2]);
+				u = output[k];
+				tmpk = u + t;
+				tmpm = u - t;
+				if (fabs(tmpk.real()) < test)
+					tmpk.real(0.0);
+				if (fabs(tmpk.imag()) < test)
+					tmpk.imag(0.0);
+				if (fabs(tmpm.real()) < test)
+					tmpm.real(0.0);
+				if (fabs(tmpm.imag()) < test)
+					tmpm.imag(0.0);
+				omp_set_lock(&(locks[k]));
+				output[k] = tmpk;
+				omp_unset_lock(&(locks[k]));
+				omp_set_lock(&(locks[k + m2]));
+				output[k + m2] = tmpm;
+				omp_unset_lock(&(locks[k + m2]));
 			}
 			w *= wm;
 		}
