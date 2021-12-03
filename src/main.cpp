@@ -16,6 +16,7 @@
 #include <fstream>
 #include <pthread.h>
 #include <omp.h>
+#include <mpi.h>
 #include "../include/timelord.h"
 #include "../include/wavio.h"
 #include "../include/imageLoader.h"
@@ -184,73 +185,35 @@ int main(int argc, char* argv[]) {
     int world_size;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-
-    // Read the sparse matrix and store it in row_ind, col_ind, and val,
-    // also known as co-ordinate format (COO).
-	vector<double> mpiInput = memcpy()
+	vector<double> mpiInput;
+	
+	memcpy(mpiInput, input, sizeof(input));
 
     // Rank 0 now determines how work will be distributed among the ranks
-    int nnz_per_rank = 0;
+    int n_per_rank = 0;
     if(world_rank == 0) {
-        nnz_per_rank = ( + world_size - 1) / world_size;
+        n_per_rank = (n + world_size - 1) / world_size;
     }
-    start = MPI_Wtime();
-    // Broadcast this to everyone
-    MPI_Bcast(&nnz_per_rank, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    // Also broadcast m and n
-    MPI_Bcast(&m, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    end = MPI_Wtime();
-    timer[VEC_BCAST_TIME] = end - start;
 
+    // Broadcast this to everyone
+    MPI_Bcast(&n_per_rank, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     // Now, let's send the sparse matrix
     // First, pad the data so that we can use MPI_Scatter instead of 
     // MPI_Scatterv
     if(world_rank == 0) {
-        int new_nnz = nnz_per_rank * world_size;
-        int* row_ind_tmp = (int*) malloc(sizeof(int) * new_nnz);
-        assert(row_ind_tmp);
-        memset(row_ind_tmp, 0, sizeof(int) * new_nnz);
-        int* col_ind_tmp = (int*) malloc(sizeof(int) * new_nnz);
-        assert(col_ind_tmp);
-        memset(col_ind_tmp, 0, sizeof(int) * new_nnz);
-        double* val_tmp = (double*) malloc(sizeof(double) * new_nnz);
-        assert(val_tmp);
+        int new_n = n_per_rank * world_size;
+        double mpiinput = (double*) malloc(sizeof(double) * new_nnz);
         memset(val_tmp, 0, sizeof(double) * new_nnz);
-
-        memcpy(row_ind_tmp, row_ind, sizeof(int) * nnz);
-        memcpy(col_ind_tmp, col_ind, sizeof(int) * nnz);
-        memcpy(val_tmp, val, sizeof(double) * nnz);
-
-        free(row_ind);
-        free(col_ind);
-        free(val);
-        row_ind = row_ind_tmp;
-        col_ind = col_ind_tmp;
-        val = val_tmp;
     } else {
         // Everyone else should get ready to receive the appropriate 
         // amount of data
-        row_ind = (int*) malloc(sizeof(int) * nnz_per_rank);
-        assert(row_ind);
-        col_ind = (int*) malloc(sizeof(int) * nnz_per_rank);
-        assert(col_ind);
         val = (double*) malloc(sizeof(double) * nnz_per_rank);
-        assert(val);
     }
 
-    start = MPI_Wtime();    
     // Scatter the data to each node
-    MPI_Scatter(row_ind, nnz_per_rank, MPI_INT, row_ind, nnz_per_rank, MPI_INT,
-                0, MPI_COMM_WORLD);
-    MPI_Scatter(col_ind, nnz_per_rank, MPI_INT, col_ind, nnz_per_rank, MPI_INT,
-                0, MPI_COMM_WORLD);
     MPI_Scatter(val, nnz_per_rank, MPI_DOUBLE, val, nnz_per_rank, MPI_DOUBLE,
                 0, MPI_COMM_WORLD);
-    end = MPI_Wtime();
-    timer[MAT_SCATTER_TIME] = end - start;
-
 
 	if (wav) {
 		// Pitch Detection
