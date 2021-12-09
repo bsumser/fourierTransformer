@@ -171,49 +171,49 @@ int main(int argc, char* argv[]) {
 
 
 	// MPI DFT
+	if (mpi) {
+		// TODO MAKE MPI WORK WITH BASIC DFT
+		// THEN COOLEY TUKEY, WILL HAVE TO PAD WITH 0'S IN MAIN
+		// RATHER THAN IN THE FUNCTION
+	    MPI_Init(NULL, NULL);
 
-	// TODO MAKE MPI WORK WITH BASIC DFT
-	// THEN COOLEY TUKEY, WILL HAVE TO PAD WITH 0'S IN MAIN
-	// RATHER THAN IN THE FUNCTION
-    MPI_Init(NULL, NULL);
+
+	   // Current rank's ID
+	    int world_rank;
+	    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+	    // Total number of ranks
+	    int world_size;
+	    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+		vector<double> mpiInput;
 	
+		memcpy(mpiInput, input, sizeof(input));
 
-    // Current rank's ID
-    int world_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-    // Total number of ranks
-    int world_size;
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+	    // Rank 0 now determines how work will be distributed among the ranks
+		int n_per_rank = 0;
+		if(world_rank == 0) {
+		    n_per_rank = (n + world_size - 1) / world_size;
+	    }
 
-	vector<double> mpiInput;
-	
-	memcpy(mpiInput, input, sizeof(input));
+		// Broadcast this to everyone
+		MPI_Bcast(&n_per_rank, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-    // Rank 0 now determines how work will be distributed among the ranks
-    int n_per_rank = 0;
-    if(world_rank == 0) {
-        n_per_rank = (n + world_size - 1) / world_size;
-    }
+		// Now, let's send the sparse matrix
+	    // First, pad the data so that we can use MPI_Scatter instead of 
+	    // MPI_Scatterv
+	    if(world_rank == 0) {
+	        int new_n = n_per_rank * world_size;
+	        double mpiinput = (double*) malloc(sizeof(double) * new_nnz);
+	        memset(val_tmp, 0, sizeof(double) * new_nnz);
+	    } else {
+	        // Everyone else should get ready to receive the appropriate 
+	        // amount of data
+	        val = (double*) malloc(sizeof(double) * nnz_per_rank);
+	    }
 
-    // Broadcast this to everyone
-    MPI_Bcast(&n_per_rank, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-    // Now, let's send the sparse matrix
-    // First, pad the data so that we can use MPI_Scatter instead of 
-    // MPI_Scatterv
-    if(world_rank == 0) {
-        int new_n = n_per_rank * world_size;
-        double mpiinput = (double*) malloc(sizeof(double) * new_nnz);
-        memset(val_tmp, 0, sizeof(double) * new_nnz);
-    } else {
-        // Everyone else should get ready to receive the appropriate 
-        // amount of data
-        val = (double*) malloc(sizeof(double) * nnz_per_rank);
-    }
-
-    // Scatter the data to each node
-    MPI_Scatter(val, nnz_per_rank, MPI_DOUBLE, val, nnz_per_rank, MPI_DOUBLE,
-                0, MPI_COMM_WORLD);
+		// Scatter the data to each node
+		MPI_Scatter(val, nnz_per_rank, MPI_DOUBLE, val, nnz_per_rank, MPI_DOUBLE,
+		            0, MPI_COMM_WORLD);
 
 	if (wav) {
 		// Pitch Detection
@@ -258,6 +258,12 @@ int processArgs(int argc, char* argv[])
 				num = true;	
 				n = stoi(optarg);
 				break;
+			case 'm':
+				wav = true;
+				if (optarg == NULL && optind < argc && argv[optind][0] != '-')
+					optarg = argv[optind++];
+				if (optarg != NULL)
+					n = stoi(optarg);
 			case '?':
 				return 1;
 		}

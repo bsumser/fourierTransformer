@@ -1,7 +1,7 @@
 # test plotting
 import matplotlib.pyplot as plt
 import numpy as np
-
+import time
 
 def plotFreq():
     lines = open("../out/ctp2.txt").readlines()
@@ -18,5 +18,19 @@ def plotFreq():
     plt.show()
 
 
+def ffttest():
+    lines = open("../out/sig.txt").readlines()
+
+    npin = np.array(lines, dtype=float)
+
+    tic = time.perf_counter()
+    data = np.fft.fft(npin)
+    toc = time.perf_counter()
+    plt.plot(np.abs(data[:8000 // 2]))
+
+    #plt.show()
+    print(toc - tic)
+
+
 if __name__ == '__main__':
-    plotFreq()
+    ffttest()
