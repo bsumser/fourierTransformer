@@ -12,31 +12,25 @@
 \date{December 2021}
 
 \begin{document}
- 
+
 \maketitle
 \newpage
+
 \begin{abstract}
 \normalsize %Makes the abstract normal size
-
-	This project intends to implement a parallized version of The Fourier Transform, called the Fast Fourier Transform (hereby referred to as the FFT) to convert analog signals into digital signals and compress images. 
-	Specifically, a Discrete Fourier Transform (hereby referred to as the DFT) is used.
-	By taking a waveform and sampling it at a certain constant frequency, we gather discrete signals in the form of a sum of sines and cosines that can be easily stored or analyzed.
-	This is how common storage formats like mp3 or jpg are compressed.
-	\newline
-    \indent We intend to create an implementation of the FFT to compress images and digital audio, as well as convert analog audio to digital. 
-    Our project will be written in C++, and by taking advantage of the University of Oregon's supercomputer, we will test our compression algorithm on its speed, and loss of quality with small and large pictures and audios.
-
+	In this project we implemented many versions of the Fourier Transform. 
+	Namely, we implemented a parallel Discrete Fourier Transform (hereby referred to as the DFT), a iterative version of the Fast Fourier Transfrom (hereby referred to as the FFT), and a MPI version of the Parallel DFT. 
+	Our main results in this project concerned converting analog signals into digital (discrete) signals, then preforming a Fourier Transform on the signals to ascertain the pitches in the original audio.
+	% insert something about image proccessing. 
+    Our project was written in C++ and a little bit of python, and we used the openmp and the openmpi libraries.
 \end{abstract}
 
-
-\maketitle
 \newpage
 \section*{Introduction}
 
-	The Fourier Transform is an important mathematical concept. It has applications
-    in digital signal processing, convolution in neural networks, image recognition and even speech processing.
-    The main idea behind the Fourier Transform is that it is a 
-    "mathematical operation that changes the domain (x-axis) of a signal from time to frequency," \cite{Maklin:2019}. 
+	The Fourier Transform is an important mathematical concept.	
+	Discovered in 1822 by Joseph Fourier, it has applications in digital signal processing, convolution in neural networks, image recognition and even speech processing.
+    A Fourier Transform can be described as a "mathematical operation that changes the domain (x-axis) of a signal from time to frequency," \cite{Maklin:2019}. 
     The Fourier transform is denoted by adding a circumflex to the symbol of a function:
 
 	\begin{align*}
@@ -48,10 +42,11 @@
 	\begin{align}
 		\hat{f} (\xi)= \int^{\infty}_{-\infty}f(x) e^{-2 \pi i x \xi}dx
 	\end{align}
+	
+	Where x represents time, and $\xi$ represents frequency.
+	\\
 
-    The particular use case for the Fourier Transform that initially started this project was that of  digital signal processing, specifically the conversion of analog signals to digital for guitar effects processing.
-    Using the Fourier Series, it is apparent that any complicated wave form can be taken,
-    and represented as an infinite series of sine and cosine functions \cite{Liu:2021}.
+    For our purposes, specifically the conversion of signals and image processing, we need to use the non-continuous (discrete) version of the Fourier Transform.
     Unfortunately, the DFT is on the slower side for algorithms, being performed in $O(n^2)$.
     It is defined as:
     
@@ -59,17 +54,46 @@
 		Let\ x_{0},\ ..., x_{N-1}\ be\ complex\ numbers,
 	\end{align*}
 	\begin{align}
-		X_{k} = \sum_{n=0}^{N-1}x_{n}e^{-i 2 \pi k n / N}\ \ \ k = 0,\ ...,\ N-1
+		X_{k} = \sum_{n=0}^{N-1}x_{n}e^{\dfrac{-2 i \pi k n}{N}}\ \ \ k = 0,\ ...,\ N-1
     \end{align}
+   
+	Using Euler's identity, we can transpose the function to:
+	
+	\begin{align*}
+		Let\ x_{0},\ ..., x_{N-1}\ be\ complex\ numbers,
+	\end{align*}
+	\begin{align}
+		X_{k} = \sum_{n=0}^{N-1}x_{n} \cos{(\dfrac{-2 \pi k n}{N})} + i\sin{(\dfrac{-2 \pi k n}{N})}\ \ \ k = 0,\ ...,\ N-1
+    \end{align}
+    
+    This will be our main implementation, as it neatly separates the real and imaginary components.
+   \\
+   
+   	To achieve a FFT, we must go a step further.
+   	By splitting the DFT into two subsections, we can achieve a DFT with less computations and better speeds.
+	The FFT is much faster than the DFT, being performed in $O(n\log{}n)$ time.
+	The FFT can be easily implemented using a recursive or iterative programming method, but there are benefits to using an iterative approach; Mainly the ability to be parallelized.
+    The FFT is a radix-2 algorithm, meaning that it is really two interleaved DFTs of size $N/2$.
+    The FFT can be defined as:
+    
+    \begin{align*}
+		Let\ x_{0},\ ..., x_{N-1}\ be\ complex\ numbers,
+	\end{align*}
+	\begin{align*}
+		X_{k} = \sum_{m=0}^{N / 2 - 1}x_{2m}e^{\dfrac{-2 i \pi k m}{N / 2}} - e^{\dfrac{-2 i \pi k}{N}} + \sum_{m=0}^{N / 2 - 1}x_{2m + 1}e^{\dfrac{-2 i \pi k m}{N / 2}}
+	\end{align*}
+	\begin{align*}
+		X_{k + N / 2} = \sum_{m=0}^{N / 2 - 1}x_{2m}e^{\dfrac{-2 i \pi k m}{N / 2}} - e^{\dfrac{-2 i \pi k}{N}} + \sum_{m=0}^{N / 2 - 1}x_{2m + 1}e^{\dfrac{-2 i \pi k m}{N / 2}}
+	\end{align*}
+	\begin{align}
+		 for \ k = 0,\ ...,\ N-1
+    \end{align}
+    
+    %lol
+    Of course our implementation applies Euler's Identity to split the function into real and imaginary components, but this will be left as an exercise to the reader.
 
-    But by using a divide and conquer strategy over the DFT, an algorithm called the Fast Fourier Transform, is formulated.
-	The FFT is much faster than the DFT, being performed in $O(n\log{}n)$ time. The FFT can be easily implemented using a recursive or iterative programming method, but there are benefits to using an iterative approach. 
-    For example, iterative implementations can use less index computations, as well was being able to be parallized far more easily than a recursive version.
-    This leads us nicely into the main impetus for this project, and the class as a whole.
-
-\maketitle
-\newpage
 \section*{Methodology}
+
 \section*{Parallization} 
     
     There are a few different directions to explore when developing a more
@@ -119,7 +143,7 @@
 	This is a less intensive but still productive test, being our original goal and very applicable to a real life scenario. 
 	
 	Overall this FFT implementation will have many functions and possible applications, but only testing a few we hope to create an algorithm that is effective and efficient.
-\section{Results}
+\section*{Results}
 \section*{Conclusion}
 	By creating a implementation of the Fast Fourier Transform, we hope to gain insight into modern image and audio compression software, as well commonly found analog to digital conversion software.
     We will attempt to implement a more sophisticated parallelized version of the FFT, using concepts applied from class such as SIMD and multithreading/processing.
