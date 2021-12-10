@@ -34,6 +34,7 @@ vector<complex<double>> PDFT(vector<double> input);
 vector<complex<double>> CT(vector<double> input);
 vector<complex<double>> CTP1(vector<double> input);
 vector<complex<double>> CTP2(vector<double> input);
+void MPIDFT(vector<double> input, int K, int world_rank, double* real, double* imag);
 vector<double> signalGenerator(int sampleSize);
 vector<double> detectPitches(vector<complex<double>> output);
 unsigned int bitReverse(unsigned int input, int log2n);
@@ -45,6 +46,7 @@ double test = 0.000000001;
 bool wav = false;
 bool image = false;
 bool num = false;
+bool mpi = false;
 bool err = false;
 string inFile = "wavs/a.wav";
 vector<omp_lock_t> locks;
@@ -172,48 +174,67 @@ int main(int argc, char* argv[]) {
 
 	// MPI DFT
 	if (mpi) {
-		// TODO MAKE MPI WORK WITH BASIC DFT
-		// THEN COOLEY TUKEY, WILL HAVE TO PAD WITH 0'S IN MAIN
-		// RATHER THAN IN THE FUNCTION
 	    MPI_Init(NULL, NULL);
 
-
-	   // Current rank's ID
+		// Current rank's ID
 	    int world_rank;
 	    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 	    // Total number of ranks
 	    int world_size;
-	    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
-		vector<double> mpiInput;
+		cout << "World size = " << world_size << endl;
+		MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 	
-		memcpy(mpiInput, input, sizeof(input));
-
 	    // Rank 0 now determines how work will be distributed among the ranks
 		int n_per_rank = 0;
 		if(world_rank == 0) {
-		    n_per_rank = (n + world_size - 1) / world_size;
-	    }
+		    n_per_rank = floor((n + world_size - 1) / world_size);
+		}
 
 		// Broadcast this to everyone
 		MPI_Bcast(&n_per_rank, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-		// Now, let's send the sparse matrix
-	    // First, pad the data so that we can use MPI_Scatter instead of 
-	    // MPI_Scatterv
-	    if(world_rank == 0) {
-	        int new_n = n_per_rank * world_size;
-	        double mpiinput = (double*) malloc(sizeof(double) * new_nnz);
-	        memset(val_tmp, 0, sizeof(double) * new_nnz);
-	    } else {
-	        // Everyone else should get ready to receive the appropriate 
-	        // amount of data
-	        val = (double*) malloc(sizeof(double) * nnz_per_rank);
-	    }
+		double* real = (double *)malloc(sizeof(double) * n);
+		double* imag = (double *)malloc(sizeof(double) * n);	
+		
+		// TODO gather
+		MPIDFT(input, n_per_rank, world_rank, real, imag);
 
-		// Scatter the data to each node
-		MPI_Scatter(val, nnz_per_rank, MPI_DOUBLE, val, nnz_per_rank, MPI_DOUBLE,
-		            0, MPI_COMM_WORLD);
+		MPI_Barrier(MPI_COMM_WORLD);
+
+		double* real_final = NULL;
+		double* imag_final = NULL;
+
+		if (world_rank == 0) {
+			real_final = (double *)malloc(sizeof(double) * n);
+			imag_final = (double *)malloc(sizeof(double) * n);
+			memset(real_final, 0.0, sizeof(double) * n);
+			memset(imag_final, 0.0, sizeof(double) * n);
+		}
+
+		MPI_Gather(real, n_per_rank, MPI_DOUBLE, real_final, n_per_rank, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+		MPI_Gather(imag, n_per_rank, MPI_DOUBLE, imag_final, n_per_rank, MPI_DOUBLE, 0, MPI_COMM_WORLD);	
+
+		if (world_rank == 0) {
+			vector<complex<double>> res;
+			res.reserve(n);
+			for (int i = 0; i < n; i++) {
+				complex<double> tmp;
+				tmp.real(real[i]);
+				tmp.imag(imag[i]);
+			}
+			writeToFile("mpiout.txt", res);
+		}
+
+		free(real);
+		free(imag);
+		if (world_rank == 0) {
+			free(real_final);
+			free(imag_final);
+		}
+
+		MPI_Finalize();
+	}
+
 
 	if (wav) {
 		// Pitch Detection
@@ -238,7 +259,7 @@ int main(int argc, char* argv[]) {
 int processArgs(int argc, char* argv[])
 {
 	int opt;
-	while ((opt = getopt(argc, argv, "w::i::n:")) != -1) {
+	while ((opt = getopt(argc, argv, "w::i::m::n:")) != -1) {
 		switch (opt) {
 			case 'w':
 				wav = true;
@@ -340,7 +361,7 @@ vector<complex<double>> DFT(vector<double> input)
     vector<complex<double>> output;
 
     //set output vector to have enough space
-    output.reserve(N);
+    output.resize(N);
 
 	complex<double> tmp = complex<double>(0.0,0.0);
 
@@ -363,7 +384,7 @@ vector<complex<double>> DFT(vector<double> input)
 			innerSum.real(0.0);
 		if (fabs(innerSum.imag()) < test)
 			innerSum.imag(0.0);
-	    output.push_back(innerSum);
+		output.at(k) = innerSum;
     }
     
     return output;
@@ -413,6 +434,45 @@ vector<complex<double>> PDFT(vector<double> input)
 	}
 
     return output;
+}
+
+void MPIDFT(vector<double> input, int K, int world_rank, double* real, double* imag)
+{
+	int low = world_rank * K;
+	int high = world_rank * (K + 1);
+	
+	cout << "Rank: " << world_rank << " --- from: " << low << " -> to: " << high << endl;
+    
+	int N = input.size();
+
+    int k;
+    int n;
+
+    //init variable for internal loop
+	double realSum = 0.0;
+	double imagSum = 0.0;	
+
+	double real_tmp = 0.0;
+	double imag_tmp = 0.0;
+
+	//#pragma omp parallel for default(none) private(real, imag, innerSum, k, tmp, n) shared(input, output, K, N, test)
+	for (k = 0; k < K; k++) {
+		for (n = 0; n < N; n++) {
+			real_tmp = cos(((2 * M_PI) / N) * k * n);
+			imag_tmp = -sin(((2 * M_PI) / N) * k * n);
+
+			real_tmp *= input[n];
+			imag_tmp *= input[n];
+			realSum += real_tmp;
+			imagSum += imag_tmp;
+		}
+		if (fabs(realSum) < test)
+			realSum = 0.0;
+		if (fabs(imagSum) < test)
+			imagSum = 0.0;
+		real[k] = realSum;
+		imag[k] = imagSum;
+	}
 }
 
 vector<complex<double>> CT(vector<double> input)
