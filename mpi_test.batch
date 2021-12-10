@@ -10,7 +10,5 @@
 #SBATCH --ntasks-per-node=4      ### number of tasks to launch per node
 #SBATCH --cpus-per-task=1        ### number of cores for each task
 
-export OMP_NUM_THREADS=28
-
 module load openmpi/2.1
-mpirun -np $SLURM_NTASKS ./main -m 1024
+mpirun -np $SLURM_NTASKS ./main

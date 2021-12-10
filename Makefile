@@ -1,17 +1,14 @@
-src = $(wildcard src/*.cc)
-obj = $(src:.cc=.o)
+src = $(wildcard src/*.cpp)
+obj = $(src:.cpp=.o)
 
 CC = mpic++
 
-FLAGS = -g -W -Wall -std=c++14 -fopenmp -DPRINT
+CXXFLAGS = -g -Wall -std=c++11 -fopenmp -DPRINT
 
 PROPOSAL = proposal
 
 main: $(obj)
-	$(CC) $(FLAGS) -o main $(obj)
-
-%.o : %.cc
-	$(CC) -c $(FLAGS) $< -o $@
+	$(CC) -o $@ $^ $(CXXFLAGS)
 
 .PHONY: clean
 

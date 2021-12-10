@@ -46,7 +46,7 @@ double test = 0.000000001;
 bool wav = false;
 bool image = false;
 bool num = false;
-bool mpi = false;
+bool mpi = true;
 bool err = false;
 string inFile = "wavs/a.wav";
 vector<omp_lock_t> locks;
@@ -101,6 +101,77 @@ int main(int argc, char* argv[]) {
 		durations.push_back(duration.count());
 		writeVectorToFile("sig.txt", input, n);
 	}
+
+	if (mpi) {
+	    MPI_Init(NULL, NULL);
+
+		// Current rank's ID
+	    int world_rank;
+	    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+	    // Total number of ranks
+	    int world_size;
+		MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+	
+	    // Rank 0 now determines how work will be distributed among the ranks
+		int n_per_rank = 0;
+		if(world_rank == 0) {
+		    n_per_rank = floor((n + world_size - 1) / world_size);
+			cout << "World size = " << world_size << endl;
+			cout << "n per rank = " << n_per_rank << endl;
+		}
+
+		// Broadcast this to everyone
+		MPI_Bcast(&n_per_rank, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+		double* real = (double *)malloc(sizeof(double) * n);
+		double* imag = (double *)malloc(sizeof(double) * n);	
+	
+		if (world_rank == 0) {
+			cout << "Starting MPI DFT ... ";
+			start = high_resolution_clock::now();
+		}
+		MPIDFT(input, n_per_rank, world_rank, real, imag);
+		MPI_Barrier(MPI_COMM_WORLD);
+		if (world_rank == 0) {
+			stop = high_resolution_clock::now();
+			cout << "done in " << duration.count() << " seconds" << endl;
+		}
+
+		double* real_final = NULL;
+		double* imag_final = NULL;
+
+		if (world_rank == 0) {
+			real_final = (double *)malloc(sizeof(double) * n);
+			imag_final = (double *)malloc(sizeof(double) * n);
+			memset(real_final, 0.0, sizeof(double) * n);
+			memset(imag_final, 0.0, sizeof(double) * n);
+		}
+
+		MPI_Gather(real, n_per_rank, MPI_DOUBLE, real_final, n_per_rank, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+		MPI_Gather(imag, n_per_rank, MPI_DOUBLE, imag_final, n_per_rank, MPI_DOUBLE, 0, MPI_COMM_WORLD);	
+
+		if (world_rank == 0) {
+			vector<complex<double>> res;
+			res.reserve(n);
+			for (int i = 0; i < n; i++) {
+				complex<double> tmp;
+				tmp.real(real[i]);
+				tmp.imag(imag[i]);
+			}
+			writeToFile("mpiout.txt", res);
+		}
+
+		free(real);
+		free(imag);
+		if (world_rank == 0) {
+			free(real_final);
+			free(imag_final);
+		}
+
+		MPI_Finalize();
+		return 0;
+	}
+	
 
 	// Locks
 	cout << "Setting up locks ... ";
@@ -170,71 +241,6 @@ int main(int argc, char* argv[]) {
 
 	for (int i = 0; i < n; i++)
 		omp_destroy_lock(&(locks[i]));
-
-
-	// MPI DFT
-	if (mpi) {
-	    MPI_Init(NULL, NULL);
-
-		// Current rank's ID
-	    int world_rank;
-	    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-	    // Total number of ranks
-	    int world_size;
-		cout << "World size = " << world_size << endl;
-		MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-	
-	    // Rank 0 now determines how work will be distributed among the ranks
-		int n_per_rank = 0;
-		if(world_rank == 0) {
-		    n_per_rank = floor((n + world_size - 1) / world_size);
-		}
-
-		// Broadcast this to everyone
-		MPI_Bcast(&n_per_rank, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-		double* real = (double *)malloc(sizeof(double) * n);
-		double* imag = (double *)malloc(sizeof(double) * n);	
-		
-		// TODO gather
-		MPIDFT(input, n_per_rank, world_rank, real, imag);
-
-		MPI_Barrier(MPI_COMM_WORLD);
-
-		double* real_final = NULL;
-		double* imag_final = NULL;
-
-		if (world_rank == 0) {
-			real_final = (double *)malloc(sizeof(double) * n);
-			imag_final = (double *)malloc(sizeof(double) * n);
-			memset(real_final, 0.0, sizeof(double) * n);
-			memset(imag_final, 0.0, sizeof(double) * n);
-		}
-
-		MPI_Gather(real, n_per_rank, MPI_DOUBLE, real_final, n_per_rank, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-		MPI_Gather(imag, n_per_rank, MPI_DOUBLE, imag_final, n_per_rank, MPI_DOUBLE, 0, MPI_COMM_WORLD);	
-
-		if (world_rank == 0) {
-			vector<complex<double>> res;
-			res.reserve(n);
-			for (int i = 0; i < n; i++) {
-				complex<double> tmp;
-				tmp.real(real[i]);
-				tmp.imag(imag[i]);
-			}
-			writeToFile("mpiout.txt", res);
-		}
-
-		free(real);
-		free(imag);
-		if (world_rank == 0) {
-			free(real_final);
-			free(imag_final);
-		}
-
-		MPI_Finalize();
-	}
-
 
 	if (wav) {
 		// Pitch Detection
