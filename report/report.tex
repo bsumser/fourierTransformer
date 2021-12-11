@@ -118,9 +118,13 @@
 		
 
 \subsection*{Parallization} 
-    Parallization of the Fourier Transforms was 
-
-
+    Parallelization of the Fourier Transforms went smoothly in general.
+    DFT can be naively parallelized for a decent speedup by adding a $\#pragma\ omp\ for$.
+    No $critical$ or $atomic$ call is need: as each thread creates one output in our array, there is no opportunity for memory errors or race conditions.
+    FFT is certainly a more complicated algorithm to parallelize. 
+    Unfortunately, we could not achieve better results than and un-parallelized Cooley-Tukey implementation.
+    We believe the cause of this lies in the overhead of creating new threads each and every iteration of the loop.
+   
 \subsection*{SIMD}
     
     Single Instruction Multiple Data prcoessors are also known as vector processors, and allow a single instruction
@@ -141,6 +145,9 @@
 	Everything did not go as smoothly as planned for the project. There were problems encountered with parallelizing aspects of the 
 	project, including various issues with image loading, MPI, and attempting to implement SIMD for increased performance.
 
+	\subsubsection*{Parallizing the FFT}
+	
+
 	\subsubsection*{Image Loading}
 	With regards to loading image data for transforming, there were a couple of difficulties. The Fourier Transform can only transform images
 	that are in greyscale, so it makes sense to also look for ways to apply parallelism to the conversion of images to grayscale.
@@ -159,16 +166,9 @@
 
 \section*{Results}
 \subsection*{Speed}
-%With a N = 2^17 or 131072, testing on Talapas, we got these times:
-%DFT: 				N/A
-%PDFT: 				60.4222 seconds
-%Cooley-Turkey: 		0.14108 seconds
-%// (critical) Cooley-Turkey: 	2.32468 seconds
-%// (locks) Cooley-Turkey: 	1.31673 seconds
-%Industry Standard (numpy):	0.00323 seconds
-
+asdf
 % I made this above section into a table
-\begin{table}[]
+\begin{table}[h]
 \begin{tabular}{ll}
 DFT & N/A \\
 PDFT & 60.4222s \\
