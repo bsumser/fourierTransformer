@@ -114,8 +114,6 @@
 		However, the speed of the FFT far outweighs the cost of the re-indexing.
 		Finally, We start the main body of the FFT.
 		We used an iterative implementation, so the main body consists of two for loops, one controlling the flow of the algorithm, and the other calculating the partial sums.
-		
-		
 
 \subsection*{Parallization} 
     Parallelization of the Fourier Transforms went smoothly in general.
@@ -157,8 +155,6 @@
     Threads are then distributed between processors round-robin style, which enables load balancing across available processors.
     In the end, each processor will perform an FFT computation on $B$ data pieces.
     This version of the algorithm seems like it may be applicable for use on the University of Oregon supercomputer.
-
-
 
 	\subsubsection*{Image Loading}
 	With regards to loading image data for transforming, there were a couple of difficulties. The Fourier Transform can only transform images
@@ -207,11 +203,10 @@ represented as wav file recordings.
 \section*{Conclusion}
 	In this attempt to provide a more parallelized version of the Fourier Transform, we learned many lessons. The trade-off between the time it takes to 
 	implement parallel version of a concept and the performance returns it brings definitely mirrors the real world trade offs that one encounters in software
-	developement.
-
-	By creating a implementation of the Fast Fourier Transform, we hope to gain insight into modern image and audio compression software, as well commonly found analog to digital conversion software.
-    We will attempt to implement a more sophisticated parallelized version of the FFT, using concepts applied from class such as SIMD and multithreading/processing.
-    We are excited to be able to have access the hardware capable of applying these concepts for parallelized computing.
+	developement. 
+	By creating a implementation of the Fast Fourier Transform, we gained insight into modern image and audio compression software, as well commonly found analog to digital conversion software.
+    We attempted to implement a more sophisticated parallelized version of the FFT, using concepts applied from class such as SIMD and multithreading/processing.
+    We are excited to be able to have access to the hardware capable of applying these concepts for parallelized computing.
 	The University of Oregon's supercomputer will be applied for testing and use of our implementation, hopefully with success. 
 	This is a lofty goal, and will take a good amount of work, but the end result will be something to be proud of.
 
