@@ -114,8 +114,11 @@
 		However, the speed of the FFT far outweighs the cost of the re-indexing.
 		Finally, We start the main body of the FFT.
 		We used an iterative implementation, so the main body consists of two for loops, one controlling the flow of the algorithm, and the other calculating the partial sums.
-		
-		
+	
+	\subsubsection*{Audio}
+		The audio processing portion of this project was surprisingly simple. 
+		With a working DFT or FFT, the only step to filter the output into the corresponding pitches is to find frequencies that have large imaginary components.
+		Naively implemented, it is as simple as saving the index of a large imaginary value.
 
 \subsection*{Parallization} 
     Parallelization of the Fourier Transforms went smoothly in general.
@@ -139,26 +142,18 @@
     For this project, getting a handle on these intrinsics would allow for an increased knowledge in C/C++, while also providing
     experience in possible future scenarios with performance critical code.
 
-\subsection*{Application}
-
 \subsection*{Difficulties}
 	Everything did not go as smoothly as planned for the project. There were problems encountered with parallelizing aspects of the 
 	project, including various issues with image loading, MPI, and attempting to implement SIMD for increased performance.
 
 	\subsubsection*{Parallizing the FFT}
-	After some preliminary research into a multithreading implementation of FFT\cite{Thulasiraman:2021}, it seems there are possible multithreaded implementations of the FFT. 
-	Based on the previously cited source, Thulasiraman et al. picked two 
-    different algorithmic approaches to investigate. 
-    The first is what they referred to as a sender-initiated algorithm based on the Cooley-Tukey FFT algorithm. 
-    The Cooley-Tukey algorithm is the most common of the FFT variations, recursively breaking the DFT into $N_1$ DFTs of size $N_2$, multiplying by complex roots of unity, and performing $N_2$ DFTs of size $N_1$.
-    
-    The second is stated as a sender-initited algorithm, utilizing a thread pool fixed at compile time. 
-    The amount of threads is equal to $N/B$, with $B$ being the block list for a list of contiguous data pieces. 
+		We had some trouble Parallizing the FFT.
+		We could not get the speed to an ideal place, but had some ideas on how to approach the problem.
+		To make the FFT run faster, we would parallelize with a thread pool fixed at compile time. 
+    	The amount of threads is equal to $N/B$, with $B$ being the block list for a list of contiguous data pieces. 
     Threads are then distributed between processors round-robin style, which enables load balancing across available processors.
     In the end, each processor will perform an FFT computation on $B$ data pieces.
-    This version of the algorithm seems like it may be applicable for use on the University of Oregon supercomputer.
-
-
+    This implementation would have been ideal for implementation on the FFT, sadly, we could not make it work in time.
 
 	\subsubsection*{Image Loading}
 	With regards to loading image data for transforming, there were a couple of difficulties. The Fourier Transform can only transform images
@@ -175,11 +170,16 @@
 	running.
 
 	\subsubsection*{MPI}
+		MPI was very harsh to us throughout the course of the project.
+		The DFT seemed like an ideal candidate for MPI at first, but it wasn't an easy process.
+		Besides MPI being difficult to implement on a project that already had many functions, like audio reading and image loading, it proved impossible to implement successfully even with a generated signal.
+		The main issue we ran into was that no matter what we tried, $MPI\_Gather$ would never successfully gather the data.
+		The function returned $MPI\_SUCCESS$, even though the array created in the process would never have anything inside it but 0's.
 
 \section*{Results}
-\subsection*{Speed}
-asdf
-% I made this above section into a table
+	\subsection*{Speed}
+		Our results were collected using Talapas, tested using an input array of size 131072.
+
 \begin{table}[h]
 \begin{tabular}{ll}
 DFT & N/A \\
@@ -191,6 +191,9 @@ numpy (Industry Standard) & 0.00323s
 \end{tabular}
 \end{table}
 
+	The default DFT algorithm was incredibly slow. With and input so large, It could not keep up in the slightest, eating up all the execution time.
+	We could not get the parallel FFT's to match the speed of the default FFT, and the Industry Standard FFT, numpy, which uses a popular C++ FFT library, beat us handily.
+
 \subsection*{Audio}
 Utilizing our implementation of the Discrete Fourier Transform, we were able to successfully filter out individual pitches in musical
 chords. Shown in the graph below, our implementation was able to accurately detect the correct frequencies of the notes in different chords, 
@@ -198,7 +201,7 @@ represented as wav file recordings.
 
 \begin{figure}[h]
   \includegraphics[scale=0.75]{./images/pitchgraph.png}
-  \caption{Graph of Results}
+  \caption{A $Dminflat6$ Chord}
 \end{figure}
 
 \section*{Conclusion}
