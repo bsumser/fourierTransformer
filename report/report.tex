@@ -2,13 +2,15 @@
 \usepackage[utf8]{inputenc}
 \usepackage{cite}
 \usepackage{amsmath}
-\usepackage{hyperref}
+\usepackage{tabularx}
 \usepackage{graphicx}
 \graphicspath{{./report/image/}}
 
 \usepackage{etoolbox}
 \apptocmd{\sloppy}{\hbadness 10000\relax}{}{} 
 %^This is here to fix long URLs in refs.bib throwing underfull hbox errors
+
+\usepackage{hyperref}
 
 \title{A Parallel Application of the Fourier Transformation}
 \author{Justin Spidell -- Brett Sumser}
@@ -179,7 +181,8 @@ numpy (Industry Standard) & 0.00323s
 
 \subsection*{Audio}
 Utilizing our implementation of the Discrete Fourier Transform, we were able to successfully filter out individual pitches in musical
-chords.
+chords. Shown in the graph below, our implementation was able to accurately detect the correct frequencies of the notes in different chords, 
+represented as wav file recordings.
 
 \begin{figure}[h]
   \includegraphics[scale=0.75]{./images/pitchgraph.png}
