@@ -53,55 +53,6 @@ vector<omp_lock_t> locks;
 
 
 int main(int argc, char* argv[]) {
-    if (processArgs(argc, argv))
-		return 1;
-
-    // Init Variables
-    high_resolution_clock::time_point start, stop;
-    Timelord newTimeLord();
-    duration<double> duration;
-	vector<double> durations;
-    vector<double> input;
-	vector<complex<double>> dftout, pdftout, ctout, ctp1out, ctp2out;
-
-	if (wav) {
-		cout << "Reading " << inFile << ":" << endl;
-		start = high_resolution_clock::now();
-		input = read_wav(inFile.c_str());
-		stop = high_resolution_clock::now();
-		cout << "done in " << duration.count() << " seconds" << endl;
-		durations.push_back(duration.count());
-		n = input.size();
-		writeVectorToFile("sig.txt", input, n);
-	}
-
-	if (image) {
-		cout << "Looking at " << inFile << " ... ";
-		//attempting to load image
-		ImageLoader imageLoader(inFile.c_str());
-		imageLoader.grayscaler();
-		start = high_resolution_clock::now();
-		discreteCosineTransform(imageLoader);
-		stop = high_resolution_clock::now();
-		cout << "done in " << duration.count() << " seconds" << endl;
-		durations.push_back(duration.count());
-		n = input.size();
-	}
-
-	cout << "N = " << n << endl << endl;
-
-	if (!wav && !image) {
-	    // Signal Generator
-		cout << "Generating signal ... ";
-	    start = high_resolution_clock::now();
-	    input = signalGenerator(n);
-	    stop = high_resolution_clock::now();
-	    duration = stop - start;
-	    cout << "done in " << duration.count() << " seconds" << endl;
-		durations.push_back(duration.count());
-		writeVectorToFile("sig.txt", input, n);
-	}
-
 	if (mpi) {
 	    MPI_Init(NULL, NULL);
 
@@ -111,11 +62,28 @@ int main(int argc, char* argv[]) {
 	    // Total number of ranks
 	    int world_size;
 		MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-	
-	    // Rank 0 now determines how work will be distributed among the ranks
+
 		int n_per_rank = 0;
-		if(world_rank == 0) {
-		    n_per_rank = floor((n + world_size - 1) / world_size);
+		vector<double> input;
+
+		if (world_rank == 0) {
+			if (processArgs(argc, argv))
+				return 1;
+			high_resolution_clock::time_point start, stop;
+    		Timelord newTimeLord();
+    		duration<double> duration;
+
+    		// Signal Generator
+			cout << "Generating signal ... ";
+	    	start = high_resolution_clock::now();
+	    	input = signalGenerator(n);
+	    	stop = high_resolution_clock::now();
+	    	duration = stop - start;
+	    	cout << "done in " << duration.count() << " seconds" << endl;
+			durations.push_back(duration.count());
+			writeVectorToFile("sig.txt", input, n);
+
+			n_per_rank = floor((n + world_size - 1) / world_size);
 			cout << "World size = " << world_size << endl;
 			cout << "n per rank = " << n_per_rank << endl;
 		}
@@ -171,7 +139,56 @@ int main(int argc, char* argv[]) {
 		MPI_Finalize();
 		return 0;
 	}
-	
+
+
+	if (processArgs(argc, argv))
+		return 1;
+    
+    // Init Variables
+    high_resolution_clock::time_point start, stop;
+    Timelord newTimeLord();
+    duration<double> duration;
+	vector<double> durations;
+    vector<double> input;
+	vector<complex<double>> dftout, pdftout, ctout, ctp1out, ctp2out;
+
+	if (wav) {
+		cout << "Reading " << inFile << ":" << endl;
+		start = high_resolution_clock::now();
+		input = read_wav(inFile.c_str());
+		stop = high_resolution_clock::now();
+		cout << "done in " << duration.count() << " seconds" << endl;
+		durations.push_back(duration.count());
+		n = input.size();
+		writeVectorToFile("sig.txt", input, n);
+	}
+
+	if (image) {
+		cout << "Looking at " << inFile << " ... ";
+		//attempting to load image
+		ImageLoader imageLoader(inFile.c_str());
+		imageLoader.grayscaler();
+		start = high_resolution_clock::now();
+		discreteCosineTransform(imageLoader);
+		stop = high_resolution_clock::now();
+		cout << "done in " << duration.count() << " seconds" << endl;
+		durations.push_back(duration.count());
+		n = input.size();
+	}
+
+	cout << "N = " << n << endl << endl;
+
+	if (!wav && !image) {
+	    // Signal Generator
+		cout << "Generating signal ... ";
+	    start = high_resolution_clock::now();
+	    input = signalGenerator(n);
+	    stop = high_resolution_clock::now();
+	    duration = stop - start;
+	    cout << "done in " << duration.count() << " seconds" << endl;
+		durations.push_back(duration.count());
+		writeVectorToFile("sig.txt", input, n);
+	}
 
 	// Locks
 	cout << "Setting up locks ... ";
