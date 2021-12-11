@@ -79,7 +79,11 @@ int main(int argc, char* argv[]) {
 		cout << "Looking at " << inFile << " ... ";
 		//attempting to load image
 		ImageLoader imageLoader(inFile.c_str());
+		start = high_resolution_clock::now();
 		imageLoader.grayscaler();
+		stop = high_resolution_clock::now();
+		duration = duration_cast<microseconds>(stop - start);
+		cout << "grayscaler done in " << duration.count() << " microseconds" << endl;
 		imageLoader.doubleVector();
 		cout << imageLoader.imageDoubles.size() << endl;
 		vector<double> imageInput = imageLoader.imageDoubles;

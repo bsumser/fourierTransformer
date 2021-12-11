@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <omp.h>
 #include <complex>
 #include "../include/lodepng.h"
 
@@ -41,15 +42,18 @@ ImageLoader::ImageLoader(const char* path)
 void ImageLoader::grayscaler()
 {
     cout << "attempting to encode grayscale image" << endl;
-    #pragma omp parallel for
+    //0.02031 - Serial
+    // - Best parallel
+    //0.02106 - Best SIMD
+    //#pragma omp parallel for schedule(static, 1024)
+    #pragma omp simd
     for (int i = 0; i < image.size(); i+=4)
     {
-        char grayPixel;
-        unsigned int gray = (image[i] + image[i + 1] + image[i + 2]) / 3;
-        grayPixel = gray;
-        image[i] = grayPixel;
-        image[i + 1] = grayPixel;
-        image[i + 2] = grayPixel;
+        unsigned int gray = image[i] + image[i + 1] + image[i + 2];
+        gray = gray / 3;
+        image[i] = gray;
+        image[i + 1] = gray;
+        image[i + 2] = gray;
         //cout << "Pixel " << i << " is : " 
         //<< "r:" << (int)image[i] << " " 
         //<< "g:" << (int)image[i + 1] << " "

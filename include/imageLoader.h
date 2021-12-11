@@ -3,6 +3,7 @@
 #include <string>
 #include <complex>
 #include <vector>
+#include <omp.h>
 #include "../include/lodepng.h"
 
 using namespace std;
