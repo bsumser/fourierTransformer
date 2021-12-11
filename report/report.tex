@@ -5,6 +5,7 @@
 \usepackage{hyperref}
 \usepackage{graphicx}
 \graphicspath{{./report/image/}}
+
 \usepackage{etoolbox}
 \apptocmd{\sloppy}{\hbadness 10000\relax}{}{} 
 %^This is here to fix long URLs in refs.bib throwing underfull hbox errors
@@ -106,7 +107,7 @@
 		We have to pad with 0's because of the nature of the FFT, it is a radix-2 algorithm, and must have an input that is a power of two.
 		This is expensive on our time, but the benefit we get from using the FFT outweighs the cost.
 		Next, we must bit reverse the indicies of the input.
-		This means given an input of size 16 (4 bits) that a number located at index 3 $(0011)$ must be switched with the number located at 12 $(1100)$.
+		This means given an input of size 16 (4 bits) that a number located at index 3 (0011) must be switched with the number located at 12 (1100).
 		Although bit operations are very fast, this still can be an expensive operation. 
 		However, the speed of the FFT far outweighs the cost of the re-indexing.
 		Finally, We start the main body of the FFT.
@@ -115,28 +116,8 @@
 		
 
 \subsection*{Parallization} 
-    
-    There are a few different directions to explore when developing a more
-    parallized implementation of the Fourier Transform. 
-    According to Anthony Blake in his thesis paper titled "Computing the Fast Fourier Transform on SIMD Microprocessors",
-    use of the FFT algorithm is extremely widespread in multiple disciplines. He goes on to state that 
-    "use of the FFT is even more pervasive, and it is counted among the 10 algorithms that have had the greatest influence 
-    on the development and practice of science and engineering in the 20th century," \cite{Blake:2012}.
-    The widespread use of the FFT algorithm provides great evidence for the need to optimize for different applications,
-    and to understand the methods that can be used to achieve this.
-    Two methods of Parallelization that stand out in particular are SIMD, and multithreading.
-   
-    After some preliminary research into a multithreading implementation of FFT\cite{Thulasiraman:2021}, it seems there are
-    possible multithreaded implementations of the FFT. Based on the previously cited source, Thulasiraman et al. picked two 
-    different algorithmic approaches to investigate. The first is what they referred to as a sender-initiated algorithm based
-    on the Cooley-Tukey FFT algorithm. The Cooley-Tukey algorithm is the most common of the FFT variations, recursively breaking
-    the DFT into $N_1$ DFTs of size $N_2$, multiplying by complex roots of unity, and performing $N_2$ DFTs of size $N_1$.
-    
-    The second is stated as a sender-initited algorithm, utilizing a thread pool fixed at compile time. 
-    The amount of threads is equal to $N/B$, with $B$ being the block list for a list of contiguous data pieces. 
-    Threads are then distributed between processors round-robin style, which enables load balancing across available processors.
-    In the end, each processor will perform an FFT computation on $B$ data pieces.
-    This version of the algorithm seems like it may be applicable for use on the University of Oregon supercomputer.
+    Parallization of the Fourier Transforms was 
+
 
 \subsection*{SIMD}
     
@@ -153,48 +134,18 @@
     experience in possible future scenarios with performance critical code.
 
 \subsection*{Application}
-	We plan to use our FFT implementation to compress images and audios. 
-	We will test our implementations speed, comparing with industry standards, and loss, by comparing with the originals. 
-	This process will all be automated, taking place on the University of Oregon's supercomputer. 
-	We hope to achieve something similar in time complexity and error to commonly found compression software, however this may be a hard goal to reach. 
-	
-	We will also test our FFT implementation by converting analog audio to digital, and comparing for loss. 
-	This is a less intensive but still productive test, being our original goal and very applicable to a real life scenario. 
-	
-	Overall this FFT implementation will have many functions and possible applications, but only testing a few we hope to create an algorithm that is effective and efficient.
+
 \subsection*{Difficulties}
 	Everything did not go as smoothly as planned for the project. There were problems encountered with parallelizing aspects of the 
 	project, including various issues with image loading, MPI, and attempting to implement SIMD for increased performance.
 
 	\subsubsection*{Image Loading}
-	With regards to loading image data for transforming, there were a couple of difficulties. The Fourier Transform can only transform images
-	that are in greyscale, so it makes sense to also look for ways to apply parallelism to the conversion of images to grayscale.
-	The first issue encountered was finding a library that was 
-	simple to use with little overhead and dependencies to get running. The first attempted library to use was \href{https://opencv.org/}{OpenCV}.
-	
-	\subsubsection*{SIMD/Intrinsics}
-	After discussing the merits of SIMD and Instricsics in C++ with Professor Choi, we reached the decision to focus developement time into
-	MPI. With the nature of converting grayscale images for use in the Fourier Transform, the RGB pixels need to be summed, and then the average
-	of that value is applied to each RGB component. SIMD could be used to sum the first 2 RGB components, provided that they are memory aligned. 
-	However, you would still need to add the last RGB compenent, and then perform a division and assign the value to all of the pixel values.
-	It was brought to our attention that although this is possible, the speedup overall would probably not really be worth the effort to get it
-	running.
+	With regards to loading image data for transforming, there were a couple of difficulties. The first was finding a library that was 
+	simple to use with little overhead and dependencies to get running. The first attempted library to use was This is my link: \href{https://opencv.org/}{OpenCV}.
 
 	\subsubsection*{MPI}
 
 \section*{Results}
-
-Utilizing our implementation of the Discrete Fourier Transform, we were able to successfully filter out individual pitches in musical
-chords. 
-
-\begin{center}
-\begin{figure}
-  \includegraphics[scale=0.75]{pitchgraph.png}
-  \caption{Graph of Results}
-\end{figure}
-\end{center}
-
-With a N = 2^17 or 131072, testing on Talapas, we got these times:
 \subsection*{Speed}
 %With a N = 2^17 or 131072, testing on Talapas, we got these times:
 DFT: 				N/A
