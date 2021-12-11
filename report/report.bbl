@@ -1,0 +1,23 @@
+\begin{thebibliography}{1}
+
+\bibitem{Blake:2012}
+Anthony Blake.
+\newblock Computing the fast fourier transform on simd microprocessors, 2012.
+
+\bibitem{Konstantin:2020}
+Konstantin.
+\newblock Improving performance with simd intrinsics in three use cases, 2020.
+
+\bibitem{Liu:2021}
+Bo~Liu.
+\newblock Parallel fast fourier transform, N/A.
+
+\bibitem{Maklin:2019}
+Cory Maklin.
+\newblock Fast fourier transform, 2019.
+
+\bibitem{Thulasiraman:2021}
+Parimala Thulasiraman.
+\newblock Multithreaded algorithms for the fast fourier transform, 2020.
+
+\end{thebibliography}
