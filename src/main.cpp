@@ -34,7 +34,7 @@ vector<complex<double>> PDFT(vector<double> input);
 vector<complex<double>> CT(vector<double> input);
 vector<complex<double>> CTP1(vector<double> input);
 vector<complex<double>> CTP2(vector<double> input);
-void MPIDFT(vector<double> input, int K, int world_rank, double* real, double* imag);
+void MPIDFT(double* input, int low, int high, double** real, double** imag);
 vector<double> signalGenerator(int sampleSize);
 vector<double> detectPitches(vector<complex<double>> output);
 unsigned int bitReverse(unsigned int input, int log2n);
@@ -65,13 +65,14 @@ int main(int argc, char* argv[]) {
 
 		int n_per_rank = 0;
 		vector<double> input;
+		input.resize(n);
+		high_resolution_clock::time_point start, stop;
+    	Timelord newTimeLord();
+    	duration<double> duration;
 
 		if (world_rank == 0) {
 			if (processArgs(argc, argv))
 				return 1;
-			high_resolution_clock::time_point start, stop;
-    		Timelord newTimeLord();
-    		duration<double> duration;
 
     		// Signal Generator
 			cout << "Generating signal ... ";
@@ -80,25 +81,35 @@ int main(int argc, char* argv[]) {
 	    	stop = high_resolution_clock::now();
 	    	duration = stop - start;
 	    	cout << "done in " << duration.count() << " seconds" << endl;
-			durations.push_back(duration.count());
 			writeVectorToFile("sig.txt", input, n);
 
-			n_per_rank = floor((n + world_size - 1) / world_size);
+			n_per_rank = n / world_size;
 			cout << "World size = " << world_size << endl;
 			cout << "n per rank = " << n_per_rank << endl;
 		}
 
 		// Broadcast this to everyone
+		MPI_Bcast(&(input[0]), n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 		MPI_Bcast(&n_per_rank, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
+		MPI_Barrier(MPI_COMM_WORLD);
+
+		int low = world_rank * n_per_rank;
+		int high = (world_rank + 1) * n_per_rank;
+
+		cout << "Rank: " << world_rank << " from: " << low << " -> to: " << high << endl;
+
 		double* real = (double *)malloc(sizeof(double) * n);
-		double* imag = (double *)malloc(sizeof(double) * n);	
-	
+		double* imag = (double *)malloc(sizeof(double) * n);
+		//memset(real, 0.0, sizeof(double) * n);
+		//memset(real, 0.0, sizeof(double) * n);
+
 		if (world_rank == 0) {
 			cout << "Starting MPI DFT ... ";
 			start = high_resolution_clock::now();
 		}
-		MPIDFT(input, n_per_rank, world_rank, real, imag);
+		MPI_Barrier(MPI_COMM_WORLD);
+		MPIDFT(&(input[0]), low, high, &real, &imag);
 		MPI_Barrier(MPI_COMM_WORLD);
 		if (world_rank == 0) {
 			stop = high_resolution_clock::now();
@@ -111,12 +122,32 @@ int main(int argc, char* argv[]) {
 		if (world_rank == 0) {
 			real_final = (double *)malloc(sizeof(double) * n);
 			imag_final = (double *)malloc(sizeof(double) * n);
-			memset(real_final, 0.0, sizeof(double) * n);
-			memset(imag_final, 0.0, sizeof(double) * n);
+			//memset(real_final, 0.0, sizeof(double) * n);
+			//memset(imag_final, 0.0, sizeof(double) * n);
 		}
 
-		MPI_Gather(real, n_per_rank, MPI_DOUBLE, real_final, n_per_rank, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-		MPI_Gather(imag, n_per_rank, MPI_DOUBLE, imag_final, n_per_rank, MPI_DOUBLE, 0, MPI_COMM_WORLD);	
+		MPI_Barrier(MPI_COMM_WORLD);
+		if (world_rank == 0) {
+			cout << "Gathering ... ";
+		}
+		if (MPI_Gather(real, n_per_rank, MPI_DOUBLE, real_final, n_per_rank, MPI_DOUBLE, 0, MPI_COMM_WORLD) == MPI_SUCCESS)
+			cout << "asdf" << endl;
+		if (MPI_Gather(imag, n_per_rank, MPI_DOUBLE, imag_final, n_per_rank, MPI_DOUBLE, 0, MPI_COMM_WORLD) == MPI_SUCCESS)
+			cout << "fdsa" << endl;
+		if (world_rank == 0) {
+			cout << "done" << endl;
+		}
+
+		if (world_rank == 0) {
+			for (int i = 0; i < n; i++)
+				cout << imag_final[i] << " ";
+			cout << endl << endl;;
+		}
+		if (world_rank == 0) {
+			for (int i = 0; i < n; i++)
+				cout << real_final[i] << " ";
+			cout << endl << endl;
+		}
 
 		if (world_rank == 0) {
 			vector<complex<double>> res;
@@ -125,6 +156,7 @@ int main(int argc, char* argv[]) {
 				complex<double> tmp;
 				tmp.real(real[i]);
 				tmp.imag(imag[i]);
+				res.push_back(tmp);
 			}
 			writeToFile("mpiout.txt", res);
 		}
@@ -441,8 +473,8 @@ vector<complex<double>> PDFT(vector<double> input)
 	for (k = 0; k < K; k++) {
 		innerSum = complex<double>(0.0,0.0);	
 		for (n = 0; n < N; n++) {
-			real = cos(((2 * M_PI) / N) * k * n);
-			imag = -sin(((2 * M_PI) / N) * k * n);
+			real = cos((2 * M_PI * k * n) / N);
+			imag = -sin((2 * M_PI * k * n) / N);
 
 			tmp.real(real);
 			tmp.imag(imag);
@@ -459,17 +491,10 @@ vector<complex<double>> PDFT(vector<double> input)
     return output;
 }
 
-void MPIDFT(vector<double> input, int K, int world_rank, double* real, double* imag)
+void MPIDFT(double* input, int low, int high, double** real, double** imag)
 {
-	int low = world_rank * K;
-	int high = world_rank * (K + 1);
-	
-	cout << "Rank: " << world_rank << " --- from: " << low << " -> to: " << high << endl;
-    
-	int N = input.size();
-
-    int k;
-    int n;
+	int k;
+    int i;
 
     //init variable for internal loop
 	double realSum = 0.0;
@@ -479,13 +504,13 @@ void MPIDFT(vector<double> input, int K, int world_rank, double* real, double* i
 	double imag_tmp = 0.0;
 
 	//#pragma omp parallel for default(none) private(real, imag, innerSum, k, tmp, n) shared(input, output, K, N, test)
-	for (k = 0; k < K; k++) {
-		for (n = 0; n < N; n++) {
-			real_tmp = cos(((2 * M_PI) / N) * k * n);
-			imag_tmp = -sin(((2 * M_PI) / N) * k * n);
+	for (k = low; k < high; k++) {
+		for (i = 0; i < n; i++) {
+			real_tmp = cos((2 * M_PI * k * i) / n);
+			imag_tmp = -sin((2 * M_PI * k * i) / n);
 
-			real_tmp *= input[n];
-			imag_tmp *= input[n];
+			real_tmp *= input[i];
+			imag_tmp *= input[i];
 			realSum += real_tmp;
 			imagSum += imag_tmp;
 		}
@@ -493,8 +518,8 @@ void MPIDFT(vector<double> input, int K, int world_rank, double* real, double* i
 			realSum = 0.0;
 		if (fabs(imagSum) < test)
 			imagSum = 0.0;
-		real[k] = realSum;
-		imag[k] = imagSum;
+		*(*real + k) = realSum;
+		*(*imag + k) = imagSum;
 	}
 }
 
