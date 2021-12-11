@@ -16,7 +16,7 @@
 #include <fstream>
 #include <pthread.h>
 #include <omp.h>
-#include <mpi.h>
+//#include <mpi.h>
 #include "../include/timelord.h"
 #include "../include/wavio.h"
 #include "../include/imageLoader.h"
@@ -80,11 +80,17 @@ int main(int argc, char* argv[]) {
 		//attempting to load image
 		ImageLoader imageLoader(inFile.c_str());
 		imageLoader.grayscaler();
+		imageLoader.doubleVector();
+		cout << imageLoader.imageDoubles.size() << endl;
+		vector<double> imageInput = imageLoader.imageDoubles;
+		cout << imageInput.size() << endl;
 		start = high_resolution_clock::now();
-		discreteCosineTransform(imageLoader);
+		vector<complex<double>> output = CTP1(imageInput);
 		stop = high_resolution_clock::now();
 		cout << "done in " << duration.count() << " seconds" << endl;
 		durations.push_back(duration.count());
+		cout << "saving the transformed image" << endl;
+		imageLoader.doubleVectorConvert(output);
 		n = input.size();
 	}
 
@@ -102,7 +108,7 @@ int main(int argc, char* argv[]) {
 		writeVectorToFile("sig.txt", input, n);
 	}
 
-	if (mpi) {
+	/*if (mpi) {
 	    MPI_Init(NULL, NULL);
 
 		// Current rank's ID
@@ -170,7 +176,7 @@ int main(int argc, char* argv[]) {
 
 		MPI_Finalize();
 		return 0;
-	}
+	} */
 	
 
 	// Locks
@@ -352,6 +358,7 @@ void discreteCosineTransform(ImageLoader imageloader)
 
 vector<complex<double>> DFT(vector<double> input)
 {
+    cout << "starting dft" << endl;
     //initialize sizes of samples
     int N = input.size();
     int K = input.size();
@@ -392,7 +399,7 @@ vector<complex<double>> DFT(vector<double> input)
 			innerSum.imag(0.0);
 		output.at(k) = innerSum;
     }
-    
+    cout << "ending dft" << endl;
     return output;
 }
 
